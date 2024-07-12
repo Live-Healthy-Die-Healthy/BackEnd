@@ -1,5 +1,3 @@
-'use strict';
-
 const { Sequelize, DataTypes } = require('sequelize');
 
 module.exports = class ExerciseList extends Sequelize.Model {
