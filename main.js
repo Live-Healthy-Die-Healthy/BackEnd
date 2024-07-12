@@ -34,5 +34,5 @@ const initializeApp = async () => {
 initializeApp();
 
 app.get('/', (req, res) => {
-  res.send('Hello');
+  res.send('liveHealthy');
 });
