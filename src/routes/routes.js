@@ -27,7 +27,7 @@ router.post('/checkUser', async (req, res) => {
       const response = await axios.post('https://kauth.kakao.com/oauth/token', null, {
         params: {
           grant_type: 'authorization_code',
-          client_id: 'YOUR_KAKAO_REST_API_KEY', // 환경 변수 또는 설정 파일에서 가져오기
+          client_id: '505f1b53b08b6f0a2d14eb6210715a87', // 환경 변수 또는 설정 파일에서 가져오기
           redirect_uri: 'http://localhost:3000/auth/kakao/callback', // 환경에 맞게 설정
           code,
         },
