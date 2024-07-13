@@ -3,12 +3,12 @@ const { Sequelize } = require('sequelize');
 // 데이터베이스 연결 설정
 const sequelize = new Sequelize({
   dialect: 'mariadb',
-  host: '127.0.0.1',  // 데이터베이스 호스트
-  port: 3306,       // 데이터베이스 포트
-  database: 'liveHealthy',  // 데이터베이스 이름
-  username: 'test',  // 데이터베이스 사용자 이름
-  password: '1234', // 데이터베이스 비밀번호
-  logging: false,   // 쿼리 로깅을 비활성화합니다.
+  host: '127.0.0.1',  
+  port: 3301,      
+  database: 'liveHealthy',  
+  username: 'test',  
+  password: '1234',
+  logging: false,  
 });
 
 const User = require('./models/user')(sequelize, Sequelize.DataTypes);
