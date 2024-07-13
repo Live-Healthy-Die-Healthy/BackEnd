@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt'); 
-const { sequelize, User, ExerciseList } = require('./src/index');  // Sequelize 인스턴스 및 모델 가져오기
+const { sequelize, User, ExerciseList, AerobicExercise, AnaerobicExercise } = require('./src/index');
+const exerciseRoutes = require('./src/routes/exerciseRoute');  
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3301;
@@ -9,16 +11,15 @@ const port = process.env.PORT || 3301;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API 라우트 설정
-app.use('/api/exercises', require('./src/routes/routes'));  //
-
+app.use('/exerciseList', exerciseRoutes);
 
 const initializeApp = async () => {
   try {
     await sequelize.authenticate();
     console.log('Connection has been established successfully.');
 
-    await sequelize.sync({ force: true }); 
+    // 데이터베이스 동기화
+    await sequelize.sync({ force: true });  // 모든 테이블을 삭제하고 다시 생성합니다.
     console.log('Database synchronized');
 
 
@@ -55,7 +56,7 @@ const initializeApp = async () => {
     await ExerciseList.bulkCreate([
       {
         exerciseId: 1,
-        exerciseName: 'PushUp',
+        exerciseName: 'Push Up',
         exerciseType: 'AnaerobicExercise',
         exerciseImage: Buffer.from([]),
         exercisePart: 'Abs',
@@ -76,11 +77,39 @@ const initializeApp = async () => {
       },
     ]);
     console.log('Exercises added');
-  } catch (error) {
-    console.error('Unable to connect to the database:', error);
-  }
-}
 
+  // AerobicExercise 데이터 추가
+  await AerobicExercise.bulkCreate([
+    {
+      exerciseId: 2,
+      distance: 5.0,
+      exerciseTime: '00:30:00', 
+    },
+  ]);
+  console.log('AerobicExercises added');
+
+  // AnaerobicExercise 데이터 추가
+  await AnaerobicExercise.bulkCreate([
+    {
+      exerciseId: 1,
+      set: 3,
+      weight: 10.0,
+      repetition: 15,
+      exerciseTime: '00:10:00', 
+    },
+    {
+      exerciseId: 3,
+      set: 4,
+      weight: 20.0,
+      repetition: 12,
+      exerciseTime: '00:20:00',  
+    },
+  ]);
+  console.log('AnaerobicExercises added');
+} catch (error) {
+  console.error('Unable to connect to the database:', error);
+}
+}
 initializeApp();
 
 app.listen(port, () => {
