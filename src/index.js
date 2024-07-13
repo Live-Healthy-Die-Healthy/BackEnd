@@ -24,13 +24,18 @@ if (config.use_env_variable) {
   });
 }
 
+  const ExerciseLog = require('./models/exerciseLog');
 
+  ExerciseLog.init(sequelize);
 
-  const Test = require('./models/test');
+  db.ExerciseLog = ExerciseLog;
 
-  Test.init(sequelize);
-
-  db.Test = Test;
+  // 모델 간의 관계 설정
+  Object.keys(db).forEach(modelName => {
+    if (db[modelName].associate) {
+      db[modelName].associate(db);
+    }
+  });
 
   db.sequelize = sequelize;
   db.Sequelize = Sequelize;

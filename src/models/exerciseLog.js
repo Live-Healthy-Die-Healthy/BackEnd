@@ -11,10 +11,6 @@ module.exports = class ExerciseLog extends Sequelize.Model {
             primaryKey: true,
             allowNull: false
         },
-        userId: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
         exerciseDate: {
             type: DataTypes.DATE,
             allowNull: false
@@ -23,12 +19,21 @@ module.exports = class ExerciseLog extends Sequelize.Model {
             type: DataTypes.ENUM('AerobicExercise', 'AnaerobicExercise'),
             allowNull: false
         },
+        userId: {
+            type: DataTypes.STRING(50),
+            allowNull: false
+        },
+        exerciseId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
         distance: {
             type: DataTypes.INTEGER,
             allowNull: true
         },
         exerciseTime: {
-            type: DataTypes.TIME,
+            type: DataTypes.STRING,
             allowNull: true
         },
         set: {
@@ -44,7 +49,7 @@ module.exports = class ExerciseLog extends Sequelize.Model {
             allowNull: true
         },
         breakTime: {
-            type: DataTypes.TIME,
+            type: DataTypes.STRING,
             allowNull: true
         }
     }, {
