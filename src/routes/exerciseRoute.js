@@ -4,10 +4,10 @@ const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog } = requir
 const router = express.Router();
 
 // 모든 ExerciseList 정보만 가져오기
-router.get('/', async (req, res) => {
+router.get('/exerciseList', async (req, res) => {
   try {
     const exercises = await ExerciseList.findAll({
-      attributes: ['exerciseId', 'exerciseName', 'exerciseType', 'exercisePart']
+      attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart']
     });
     res.json(exercises);
   } catch (error) {
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // 특정 ExerciseList의 상세 정보 가져오기
-router.get('/:id', async (req, res) => {
+router.get('/exerciseList/:id', async (req, res) => {
   try {
     const exercise = await ExerciseList.findByPk(req.params.id, {
       include: [
@@ -45,12 +45,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// routes/exerciseList.js
-
-router.post('/:id/record', async (req, res) => {
+// 운동 기록 등록하기 (경로 변경: /addExerciseLog)
+router.post('/addExerciseLog', async (req, res) => {
   try {
-    const { userId, exerciseType, distance, exerciseTime, set, weight, repetition } = req.body;
-    const exerciseId = req.params.id;
+    const { userId, exerciseId, exerciseType, distance, exerciseTime, set, weight, repetition } = req.body;
 
     // 운동 정보 확인
     const exercise = await ExerciseList.findByPk(exerciseId);
@@ -77,6 +75,5 @@ router.post('/:id/record', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 module.exports = router;

@@ -11,7 +11,7 @@ const port = process.env.PORT || 3301;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/exerciseList', exerciseRoutes);
+app.use('/', exerciseRoutes);
 
 const initializeApp = async () => {
   try {
