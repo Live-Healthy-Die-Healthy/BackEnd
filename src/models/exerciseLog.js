@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
     const ExerciseLog = sequelize.define('ExerciseLog', {
       exerciseLogId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true,
       },
