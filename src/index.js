@@ -25,14 +25,11 @@ if (config.use_env_variable) {
 }
 
 
+const User = require('./models/user');
+User.init(sequelize);
 
-  const Test = require('./models/test');
-
-  Test.init(sequelize);
-
-  db.Test = Test;
-
-  db.sequelize = sequelize;
-  db.Sequelize = Sequelize;
+db.User = User;
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
 module.exports = db;

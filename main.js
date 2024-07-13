@@ -1,11 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { sequelize, Test } = require('./src/index');
+const { sequelize, User } = require('./src/index');
+const routes = require('./src/routes/routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(express.json());
+app.use('/', routes);
 
 const initializeApp = async () => {
   try {
@@ -21,10 +24,19 @@ const initializeApp = async () => {
     console.error('Unable to connect to the database:', error);
   }
 
-  await Test.bulkCreate([
-    { username: 'test1', 
-    password: '1234',
-   }
+  await User.bulkCreate([
+    { 
+      userId: 'test1',
+      username: 'testuser1',
+      connectedAt: new Date(),
+      password: 'password1',
+      userEmail: 'testuser1@example.com',
+      userBirth: new Date('1990-01-01'),
+      userHeight: 170,
+      userWeight: 70,
+      userGender: 'male',
+      userImage: null // 필요한 경우 이미지를 추가할 수 있습니다.
+    }
   ]);
   console.log('test data uploaded');
 };
@@ -32,7 +44,3 @@ const initializeApp = async () => {
 
 
 initializeApp();
-
-app.get('/', (req, res) => {
-  res.send('Hello');
-});
