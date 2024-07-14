@@ -1,12 +1,15 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const bcrypt = require('bcrypt'); 
 const { sequelize, User, ExerciseList, AerobicExercise, AnaerobicExercise } = require('./src/index');
 const exerciseRoutes = require('./src/routes/exerciseRoute');  
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 3301;
+const port = process.env.PORT || 4000;
+
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -76,7 +79,7 @@ const initializeApp = async () => {
         exercisePart: 'Thighs',
       },
     ]);
-    console.log('Exercises added');
+    console.log('ExerciseList added');
 
   // AerobicExercise 데이터 추가
   await AerobicExercise.bulkCreate([
@@ -110,8 +113,10 @@ const initializeApp = async () => {
   console.error('Unable to connect to the database:', error);
 }
 }
+
+// 메인 함수 호출
 initializeApp();
 
 app.listen(port, () => {
-  console.log(`App listening on port ${port}`);
+console.log(`App listening on port ${port}`);
 });

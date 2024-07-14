@@ -62,11 +62,11 @@ router.post('/addExerciseLog', async (req, res) => {
       userId,
       exerciseType,
       exerciseDate: new Date(),
-      distance: exerciseType === 'aerobic' ? distance : null, // 유산소 운동만 distance 사용
+      distance: exerciseType === 'aerobicExercise' ? distance : null, // 유산소 운동만 distance 사용
       exerciseTime, //둘다 사용
-      set: exerciseType === 'anaerobic' ? set : null, // 무산소 운동만 set 사용
-      weight: exerciseType === 'anaerobic' ? weight : null, // 무산소 운동만 weight 사용
-      repetition: exerciseType === 'anaerobic' ? repetition : null, // 무산소 운동만 repetition 사용
+      set: exerciseType === 'anaerobicExercise' ? set : null, // 무산소 운동만 set 사용
+      weight: exerciseType === 'anaerobicExercise' ? weight : null, // 무산소 운동만 weight 사용
+      repetition: exerciseType === 'anaerobicExercise' ? repetition : null, // 무산소 운동만 repetition 사용
     });
 
     res.status(201).json({ message: "운동 기록이 추가 되었습니다.", log: newLog });

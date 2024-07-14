@@ -23,4 +23,3 @@ module.exports = (sequelize, DataTypes) => {
 
   return ExerciseList;
 };
-
