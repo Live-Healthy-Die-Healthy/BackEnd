@@ -4,7 +4,7 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize({
   dialect: 'mariadb',
   host: '127.0.0.1',  
-  port: 3301,      
+  port: 3306,      
   database: 'liveHealthy',  
   username: 'test',  
   password: '1234',
