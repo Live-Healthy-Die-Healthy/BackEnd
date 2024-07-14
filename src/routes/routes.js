@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op, Sequelize } = require('sequelize');
-const { ExerciseLog, AerobicExercise, AnaerobicExercise, sequelize } = require('../index'); // sequelize를 추가로 가져옴
+const { ExerciseLog, AerobicExercise, AnaerobicExercise, sequelize } = require('../index');
 
 // GET 요청: 특정 사용자의 운동 기록 조회
 router.get('/:userId/:exerciseDate', async (req, res) => {
@@ -11,7 +11,7 @@ router.get('/:userId/:exerciseDate', async (req, res) => {
         const exerciseLogs = await ExerciseLog.findAll({
             where: {
                 userId: userId,
-                [Op.and]: sequelize.where(sequelize.fn('DATE', sequelize.col('exerciseDate')), exerciseDate)
+                [Op.and]: Sequelize.where(Sequelize.fn('DATE', Sequelize.col('exerciseDate')), exerciseDate)
             }
         });
 

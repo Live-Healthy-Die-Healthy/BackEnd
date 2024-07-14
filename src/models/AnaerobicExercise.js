@@ -40,4 +40,7 @@ module.exports = class AnaerobicExercise extends Sequelize.Model {
       collate: 'utf8_general_ci',
     });
   }
+  static associate(models) {
+    this.belongsTo(models.ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
+  }
 }
