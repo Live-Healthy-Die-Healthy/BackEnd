@@ -2,10 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise } = require('./src/index');
+const routes = require('./src/routes/routes');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use('/exerciseLogs', routes);
 
 const initializeApp = async () => {
   try {
@@ -118,6 +120,11 @@ const initializeApp = async () => {
     ]);
 
     console.log('test data uploaded');
+    /*const users = await User.findAll();
+    const exerciseLogs = await ExerciseLog.findAll();
+    console.log('Users:', JSON.stringify(users, null, 2));
+    console.log('ExerciseLogs:', JSON.stringify(exerciseLogs, null, 2));
+    */
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
