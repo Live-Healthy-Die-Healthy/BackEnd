@@ -1,14 +1,19 @@
 const express = require('express');
-const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User } = require('../index');
+const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User } = require('../index');
 
 const router = express.Router();
 
 // 모든 ExerciseList 정보만 가져오기
 router.get('/exerciseList', async (req, res) => {
   try {
+    const { name } = req.query;  // 쿼리 파라미터에서 이름을 가져옵니다.
+    const whereClause = name ? { exerciseName: { [Sequelize.Op.like]: `%${name}%` } } : {}; // 이름으로 검색할 조건
+
     const exercises = await ExerciseList.findAll({
-      attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart']
+      attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
+      where: whereClause,  // 검색 조건을 여기에 추가합니다.
     });
+
     res.json(exercises);
   } catch (error) {
     console.error('Error fetching exercises:', error);
@@ -111,4 +116,4 @@ router.post('/addExerciseLog', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
