@@ -56,4 +56,55 @@ router.get('/:userId/:exerciseDate', async (req, res) => {
     }
 });
 
+// PUT 요청: 특정 운동 기록 수정
+router.put('/:exerciseLogId', async (req, res) => {
+    const { exerciseLogId } = req.params;
+    const { exerciseType, exerciseDate, ...details } = req.body; // 업데이트할 세부 사항을 body에서 가져옴
+
+    try {
+        const log = await ExerciseLog.findByPk(exerciseLogId);
+
+        if (!log) {
+            return res.status(404).json({ message: 'Exercise log not found' });
+        }
+
+        if (exerciseType === 'Aerobic') {
+            await AerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
+        } else if (exerciseType === 'Anaerobic') {
+            await AnaerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
+        }
+
+        await log.update({ exerciseType, exerciseDate });
+        res.json({ message: 'Exercise log updated successfully' });
+    } catch (error) {
+        console.error('Error updating exercise log:', error);
+        res.status(500).json({ message: 'Error updating exercise log', error: error.toString() });
+    }
+});
+
+// DELETE 요청: 특정 운동 기록 삭제
+router.delete('/:exerciseLogId', async (req, res) => {
+    const { exerciseLogId } = req.params;
+
+    try {
+        const log = await ExerciseLog.findByPk(exerciseLogId);
+
+        if (!log) {
+            return res.status(404).json({ message: 'Exercise log not found' });
+        }
+
+        if (log.exerciseType === 'Aerobic') {
+            await AerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
+        } else if (log.exerciseType === 'Anaerobic') {
+            await AnaerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
+        }
+
+        await log.destroy();
+        res.json({ message: 'Exercise log deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting exercise log:', error);
+        res.status(500).json({ message: 'Error deleting exercise log', error: error.toString() });
+    }
+});
+
 module.exports = router;
