@@ -6,52 +6,35 @@ module.exports = class ExerciseLog extends Sequelize.Model {
   static init(sequelize) {
     return super.init({
         exerciseLogId: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.BIGINT,
             primaryKey: true,
-            allowNull: false
-        },
-        exerciseDate: {
-            type: DataTypes.DATE,
-            allowNull: false
-        },
-        exerciseType: {
-            type: DataTypes.ENUM('AerobicExercise', 'AnaerobicExercise'),
-            allowNull: false
-        },
-        userId: {
-            type: DataTypes.STRING(50),
-            allowNull: false
-        },
-        exerciseId: {
+            autoIncrement: true,
+          },
+          exerciseId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 0
-        },
-        distance: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        exerciseTime: {
+            references: {
+              model: 'exerciseLists', // 이 모델과 연결
+              key: 'exerciseId'
+            }
+          },
+          userId: {
             type: DataTypes.STRING,
-            allowNull: true
-        },
-        set: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        weight: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        repetition: {
-            type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        breakTime: {
+            allowNull: false,
+            references: {
+              model: 'users', // 이 모델과 연결
+              key: 'userId'
+            }
+          },
+          exerciseType: {
             type: DataTypes.STRING,
-            allowNull: true
-        }
+            allowNull: false,
+          },
+          exerciseDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+          }
     }, {
       sequelize,
       timestamps: true,

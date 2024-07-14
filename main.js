@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { sequelize, ExerciseLog } = require('./src/index');
+const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise } = require('./src/index');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,41 +14,109 @@ const initializeApp = async () => {
     await sequelize.sync({ force: true });
     console.log('Database synchronized');
 
-
-    await ExerciseLog.bulkCreate([
+    // User 목업 데이터
+    await User.bulkCreate([
       {
         userId: 'user1',
-        exerciseDate: '2024-07-13',
-        exerciseType: 'AerobicExercise',
-        distance: 30,
-        exerciseTime: '00:55:00'
-      },
-      {
-        userId: 'user1',
-        exerciseDate: '2024-07-13',
-        exerciseType: 'AnaerobicExercise',
-        set: 5,
-        weight: '55',
-        repetition: 10,
-        breakTime: '00:01:00'
+        username: 'JohnDoe',
+        password: 'password123',
+        userEmail: 'john@example.com',
+        userBirth: '1990-01-01',
+        userHeight: 180,
+        userWeight: 75,
+        userGender: 'Male',
+        connectedAt: new Date()
       },
       {
         userId: 'user2',
-        exerciseDate: '2024-07-13',
-        exerciseType: 'AerobicExercise',
-        distance: 25,
-        exerciseTime: '00:40:00'
-      },
-      {
-        userId: 'user2',
-        exerciseDate: '2024-07-13',
-        exerciseType: 'AnaerobicExercise',
-        set: 4,
-        weight: '50',
-        repetition: 12,
-        breakTime: '00:02:00'
+        username: 'JaneDoe',
+        password: 'password456',
+        userEmail: 'jane@example.com',
+        userBirth: '1992-02-02',
+        userHeight: 165,
+        userWeight: 60,
+        userGender: 'Female',
+        connectedAt: new Date()
       }
     ]);
+
+    // ExerciseList 목업 데이터
+    await ExerciseList.bulkCreate([
+      {
+        exerciseId: 1,
+        exerciseName: 'Running',
+        exerciseType: 'Aerobic',
+        exercisePart: 'Legs'
+      },
+      {
+        exerciseId: 2,
+        exerciseName: 'Bench Press',
+        exerciseType: 'Anaerobic',
+        exercisePart: 'Chest'
+      },
+      {
+        exerciseId: 3,
+        exerciseName: 'Squat',
+        exerciseType: 'Anaerobic',
+        exercisePart: 'Thighs',
+      },
+    ]);
+
+    // AerobicExercise 목업 데이터
+    await AerobicExercise.bulkCreate([
+      {
+        exerciseId: 1,
+        distance: 5.0,
+        exerciseTime: '00:30:00'
+      },
+    ]);
+
+    // AnaerobicExercise 목업 데이터
+    await AnaerobicExercise.bulkCreate([
+      {
+        exerciseId: 2,
+        set: 3,
+        weight: 50,
+        repetition: 10,
+        exerciseTime: '00:45:00'
+      },
+      {
+        exerciseId: 3,
+        set: 4,
+        weight: 60,
+        repetition: 8,
+        exerciseTime: '00:50:00'
+      }
+    ]);
+
+    // ExerciseLog 목업 데이터
+    await ExerciseLog.bulkCreate([
+      {
+        exerciseId: 1,
+        userId: 'user1',
+        exerciseType: 'Aerobic',
+        exerciseDate: '2024-07-13'
+      },
+      {
+        exerciseId: 2,
+        userId: 'user1',
+        exerciseType: 'Anaerobic',
+        exerciseDate: '2024-07-14'
+      },
+      {
+        exerciseId: 1,
+        userId: 'user2',
+        exerciseType: 'Aerobic',
+        exerciseDate: '2024-07-13'
+      },
+      {
+        exerciseId: 2,
+        userId: 'user2',
+        exerciseType: 'Anaerobic',
+        exerciseDate: '2024-07-14'
+      }
+    ]);
+
     console.log('test data uploaded');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
