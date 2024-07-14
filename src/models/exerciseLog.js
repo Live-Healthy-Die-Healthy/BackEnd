@@ -1,41 +1,49 @@
-module.exports = (sequelize, DataTypes) => {
-  const ExerciseLog = sequelize.define('ExerciseLog', {
-    exerciseLogId: {
-      type: DataTypes.BIGINT,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    exerciseId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'ExerciseLists', // 이 모델과 연결
-        key: 'exerciseId'
-      }
-    },
-    userId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      references: {
-        model: 'Users', // 이 모델과 연결
-        key: 'userId'
-      }
-    },
-    exerciseType: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    exerciseDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
-  });
+'use strict';
 
-  ExerciseLog.associate = function(models) {
-    ExerciseLog.belongsTo(models.ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
-    ExerciseLog.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
-  };
+const { Sequelize, DataTypes } = require('sequelize');
 
-  return ExerciseLog;
-};
+module.exports = class ExerciseLog extends Sequelize.Model {
+  static init(sequelize) {
+    return super.init({
+        exerciseLogId: {
+            type: DataTypes.BIGINT,
+            primaryKey: true,
+            autoIncrement: true,
+          },
+          exerciseId: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: {
+              model: 'exerciseLists', // 이 모델과 연결
+              key: 'exerciseId'
+            }
+          },
+          userId: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            references: {
+              model: 'users', // 이 모델과 연결
+              key: 'userId'
+            }
+          },
+          exerciseType: {
+            type: DataTypes.STRING,
+            allowNull: false,
+          },
+          exerciseDate: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+          }
+    }, {
+      sequelize,
+      timestamps: true,
+      underscored: false,
+      modelName: 'ExerciseLog',
+      tableName: 'exerciseLog',
+      paranoid: false,
+      charset: 'utf8',
+      collate: 'utf8_general_ci',
+    });
+  }
+}

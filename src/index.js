@@ -1,42 +1,53 @@
-const { Sequelize } = require('sequelize');
+'use strict';
 
-// 데이터베이스 연결 설정
-const sequelize = new Sequelize({
-  dialect: 'mariadb',
-  host: '127.0.0.1',  
-  port: 3306,      
-  database: 'liveHealthy',  
-  username: 'test',  
-  password: '1234',
-  logging: false,  
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const env = process.env.NODE_ENV || 'test';
+const config = require('../config/config.json')[env];
+const db = {};
+
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+} else {
+  sequelize = new Sequelize(config.database, config.username, config.password, {
+    host: config.host,
+    dialect: config.dialect,
+    port: config.port,
+    define: {
+      timestamps: true,
+      underscored: false,
+    },
+  });
+}
+
+const AerobicExercise = require('./models/AerobicExercise');
+const AnaerobicExercise = require('./models/AnaerobicExercise');
+const ExerciseList = require('./models/exerciseList');
+const ExerciseLog = require('./models/exerciseLog');
+const User = require('./models/user');
+
+AerobicExercise.init(sequelize);
+AnaerobicExercise.init(sequelize);
+ExerciseList.init(sequelize);
+ExerciseLog.init(sequelize);
+User.init(sequelize);
+
+db.AerobicExercise = AerobicExercise;
+db.AnaerobicExercise = AnaerobicExercise;
+db.ExerciseList = ExerciseList;
+db.ExerciseLog = ExerciseLog;
+db.User = User;
+
+// 모델 간의 관계 설정
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
 });
 
-const User = require('./models/user')(sequelize, Sequelize.DataTypes);
-const ExerciseList = require('./models/exerciseList')(sequelize, Sequelize.DataTypes);
-const AerobicExercise = require('./models/AerobicExercise')(sequelize, Sequelize.DataTypes);
-const AnaerobicExercise = require('./models/AnaerobicExercise')(sequelize, Sequelize.DataTypes);
-const ExerciseLog = require('./models/exerciseLog')(sequelize, Sequelize.DataTypes);
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
-User.hasMany(ExerciseList);
-ExerciseList.belongsTo(User);
-
-ExerciseList.hasOne(AerobicExercise, { foreignKey: 'exerciseId', as: 'aerobicExercise' });
-ExerciseList.hasOne(AnaerobicExercise, { foreignKey: 'exerciseId', as: 'anaerobicExercise' });
-
-AerobicExercise.belongsTo(ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
-AnaerobicExercise.belongsTo(ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
-
-ExerciseList.hasMany(ExerciseLog, { foreignKey: 'exerciseId', as: 'logs' });
-ExerciseLog.belongsTo(ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
-
-User.hasMany(ExerciseLog, { foreignKey: 'userId', as: 'logs' });
-ExerciseLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
-module.exports = {
-  sequelize,
-  User,
-  ExerciseList,
-  AerobicExercise,
-  AnaerobicExercise,
-  ExerciseLog,
-};
+module.exports = db;
