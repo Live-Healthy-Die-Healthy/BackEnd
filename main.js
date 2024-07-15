@@ -6,11 +6,12 @@ const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicEx
 const routes = require('./src/routes/routes');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/exerciseLogs', routes);
+app.use(express.urlencoded({ extended: true }));
+app.use('/', routes);
 
 const initializeApp = async () => {
   try {
@@ -22,7 +23,7 @@ const initializeApp = async () => {
     // User 목업 데이터
     await User.bulkCreate([
       {
-        userId: 'user1',
+        userId: '1234',
         username: 'JohnDoe',
         password: 'password123',
         userEmail: 'john@example.com',
@@ -98,13 +99,13 @@ const initializeApp = async () => {
     await ExerciseLog.bulkCreate([
       {
         exerciseId: 1,
-        userId: 'user1',
+        userId: '1234',
         exerciseType: 'Aerobic',
         exerciseDate: '2024-07-13'
       },
       {
         exerciseId: 2,
-        userId: 'user1',
+        userId: '1234',
         exerciseType: 'Anaerobic',
         exerciseDate: '2024-07-14'
       },
