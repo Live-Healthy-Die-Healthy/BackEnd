@@ -53,7 +53,7 @@ router.get('/exerciseList/:id', async (req, res) => {
 // 운동 기록 등록하기 (경로: /addExerciseLog)
 router.post('/addExerciseLog', async (req, res) => {
   try {
-    let { userId, exerciseId, exerciseType, distance, exerciseTime, set, weight, repetition } = req.body;
+    let { userId, exerciseId, exerciseType, distance, exerciseTime, set, weight, repetition, exerciseDate } = req.body;
 
     // 요청 데이터 로그
     console.log('Request data:', req.body);
@@ -87,7 +87,7 @@ router.post('/addExerciseLog', async (req, res) => {
       exerciseId,
       userId,
       exerciseType,
-      exerciseDate: new Date(),
+      exerciseDate,
       distance: exerciseType === 'Aerobic' ? distance : null,
       exerciseTime,
       set: exerciseType === 'Anaerobic' ? set : null,
