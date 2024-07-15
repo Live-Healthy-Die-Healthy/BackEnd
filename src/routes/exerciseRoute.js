@@ -65,7 +65,7 @@ router.post('/addExerciseLog', async (req, res) => {
 
     // `userId`가 빈 문자열이면 기본값으로 설정
     if (!userId) {
-      userId = 'user1';  // 예시로 기본값을 'user1'로 설정
+      userId = 'user';  // 예시로 기본값을 'user1'로 설정
     }
 
     // `userId`가 유효한지 확인

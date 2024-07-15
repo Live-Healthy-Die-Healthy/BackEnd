@@ -22,7 +22,7 @@ const initializeApp = async () => {
     // User 목업 데이터
     await User.bulkCreate([
       {
-        userId: 'user1',
+        userId: '1234',
         username: 'JohnDoe',
         password: 'password123',
         userEmail: 'john@example.com',
