@@ -27,7 +27,7 @@ router.post('/exerciseLog', async (req, res) => {
         }
 
         const responses = await Promise.all(exerciseLogs.map(async (log) => {
-            if (log.exerciseType === 'Aerobic') {
+            if (log.exerciseType === 'AerobicExercise') {
                 const aerobic = await AerobicExercise.findOne({
                     where: { exerciseId: log.exerciseId }
                 });
@@ -38,7 +38,7 @@ router.post('/exerciseLog', async (req, res) => {
                     distance: aerobic.distance,
                     exerciseTime: aerobic.exerciseTime
                 };
-            } else if (log.exerciseType === 'Anaerobic') {
+            } else if (log.exerciseType === 'AnaerobicExercise') {
                 const anaerobic = await AnaerobicExercise.findOne({
                     where: { exerciseId: log.exerciseId }
                 });
@@ -135,9 +135,9 @@ router.put('/:exerciseLogId', async (req, res) => {
             return res.status(404).json({ message: 'Exercise log not found' });
         }
 
-        if (exerciseType === 'Aerobic') {
+        if (exerciseType === 'AerobicExercise') {
             await AerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
-        } else if (exerciseType === 'Anaerobic') {
+        } else if (exerciseType === 'AnaerobicExercise') {
             await AnaerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
         }
 
@@ -160,9 +160,9 @@ router.delete('/:exerciseLogId', async (req, res) => {
             return res.status(404).json({ message: 'Exercise log not found' });
         }
 
-        if (log.exerciseType === 'Aerobic') {
+        if (log.exerciseType === 'AerobicExercise') {
             await AerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
-        } else if (log.exerciseType === 'Anaerobic') {
+        } else if (log.exerciseType === 'AnaerobicExercise') {
             await AnaerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
         }
 
@@ -198,7 +198,7 @@ router.post('/exerciseCalender', async (req, res) => {
         }
 
         const responses = await Promise.all(exerciseLogs.map(async (log) => {
-            if (log.exerciseType === 'Aerobic') {
+            if (log.exerciseType === 'AerobicExercise') {
                 const aerobic = await AerobicExercise.findOne({
                     where: { exerciseId: log.exerciseId }
                 });
@@ -209,7 +209,7 @@ router.post('/exerciseCalender', async (req, res) => {
                     distance: aerobic.distance,
                     exerciseTime: aerobic.exerciseTime
                 };
-            } else if (log.exerciseType === 'Anaerobic') {
+            } else if (log.exerciseType === 'AnaerobicExercise') {
                 const anaerobic = await AnaerobicExercise.findOne({
                     where: { exerciseId: log.exerciseId }
                 });
