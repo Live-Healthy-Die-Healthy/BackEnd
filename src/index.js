@@ -36,6 +36,7 @@ ExerciseList.init(sequelize);
 ExerciseLog.init(sequelize);
 User.init(sequelize);
 
+
 db.AerobicExercise = AerobicExercise;
 db.AnaerobicExercise = AnaerobicExercise;
 db.ExerciseList = ExerciseList;

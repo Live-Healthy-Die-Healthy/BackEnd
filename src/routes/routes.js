@@ -79,62 +79,77 @@ router.get('/exerciseLog', (req, res) => {
 
 //승준
 router.post('/exerciseLog', async (req, res) => {
-  const { userId, exerciseDate } = req.body;
-
-  console.log('exerciseDate', exerciseDate);
-
-  try {
+    const { userId, exerciseDate } = req.body;
+  
+    console.log('exerciseDate', exerciseDate);
+  
+    try {
       const date = new Date(exerciseDate);
-
+  
       const exerciseLogs = await ExerciseLog.findAll({
-          where: {
-              userId: userId,
-              exerciseDate: {
-                  [Op.eq]: date
-              }
+        where: {
+          userId: userId,
+          exerciseDate: {
+            [Op.eq]: date
           }
+        }
       });
-
+  
       if (exerciseLogs.length === 0) {
-          return res.status(404).json({ message: 'No exercise logs found' });
+        return res.status(404).json({ message: 'No exercise logs found' });
       }
-
+  
       const responses = await Promise.all(exerciseLogs.map(async (log) => {
-          if (log.exerciseType === 'Aerobic') {
-              const aerobic = await AerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
-              });
-              return {
-                  exerciseLogId: log.exerciseLogId,
-                  exerciseDate: log.exerciseDate,
-                  exerciseType: log.exerciseType,
-                  distance: aerobic.distance,
-                  exerciseTime: aerobic.exerciseTime
-              };
-          } else if (log.exerciseType === 'Anaerobic') {
-              const anaerobic = await AnaerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
-              });
-              return {
-                  exerciseLogId: log.exerciseLogId,
-                  exerciseDate: log.exerciseDate,
-                  exerciseType: log.exerciseType,
-                  set: anaerobic.set,
-                  weight: anaerobic.weight,
-                  repetition: anaerobic.repetition,
-                  exerciseTime: anaerobic.exerciseTime
-              };
-          } else {
-              return log; // 다른 유형의 운동 로그가 있을 경우 기본 로그 반환
-          }
+        let exerciseDetails;
+  
+        if (log.exerciseType === 'AerobicExercise') {
+          const aerobic = await AerobicExercise.findOne({
+            where: { exerciseLogId: log.exerciseLogId }
+          });
+          console.log("aerobic: ", aerobic);
+          exerciseDetails = {
+            distance: aerobic.distance,
+            exerciseTime: aerobic.exerciseTime
+          };
+        } else if (log.exerciseType === 'AnaerobicExercise') {
+          const anaerobic = await AnaerobicExercise.findOne({
+            where: { exerciseLogId: log.exerciseLogId }
+          });
+  
+          // weight와 repetition을 배열 형태로 변환
+          const weights = JSON.parse(anaerobic.weight);
+          const repetitions = JSON.parse(anaerobic.repetition);
+  
+          exerciseDetails = {
+            set: weights.length,
+            weight: weights,
+            repetition: repetitions,
+            exerciseTime: anaerobic.exerciseTime
+          };
+        } else {
+          exerciseDetails = log; // 다른 유형의 운동 로그가 있을 경우 기본 로그 반환
+        }
+  
+        // exerciseId에 해당하는 exerciseName을 찾기
+        const exercise = await ExerciseList.findOne({
+          where: { exerciseId: log.exerciseId }
+        });
+  
+        return {
+          exerciseLogId: log.exerciseLogId,
+          exerciseDate: log.exerciseDate,
+          exerciseType: log.exerciseType,
+          exerciseName: exercise ? exercise.exerciseName : null,
+          ...exerciseDetails
+        };
       }));
-
+  
       res.json(responses);
-  } catch (error) {
+    } catch (error) {
       console.error('Error retrieving exercise logs:', error); // 로그에 오류 정보를 출력
       res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
-  }
-});
+    }
+  });
 
 router.get('/:userId/:exerciseDate', async (req, res) => {
   const { userId, exerciseDate } = req.params;
@@ -195,34 +210,103 @@ router.get('/:userId/:exerciseDate', async (req, res) => {
 });
 
 // PUT 요청: 특정 운동 기록 수정
-router.put('/:exerciseLogId', async (req, res) => {
-  const { exerciseLogId } = req.params;
-  const { exerciseType, exerciseDate, ...details } = req.body; // 업데이트할 세부 사항을 body에서 가져옴
+router.put('/exerciseLog', async (req, res) => {
+    const { exerciseLogId, exerciseType, distance, weight, repetition, exerciseTime } = req.body; // 업데이트할 세부 사항을 body에서 가져옴
+    console.log("exerciseTime : ", exerciseTime);
+    console.log("weight : ", weight);
+    console.log("repetition : ", repetition);
+    try {
+        const log = await ExerciseLog.findByPk(exerciseLogId);
+        console.log("log : ", log);
 
-  try {
-      const log = await ExerciseLog.findByPk(exerciseLogId);
+        if (!log) {
+            return res.status(404).json({ message: 'Exercise log not found' });
+        }
 
-      if (!log) {
-          return res.status(404).json({ message: 'Exercise log not found' });
-      }
+        if (exerciseType === 'AerobicExercise') {
+            await AerobicExercise.update(
+                { distance: distance, exerciseTime: exerciseTime },
+                { where: { exerciseLogId: log.exerciseLogId } }
+            );
+        } else if (exerciseType === 'AnaerobicExercise') {
+            // weight와 repetition을 문자열 배열 형태로 변환
+            const set = weight.length;
+            const weightArray = JSON.stringify(weight);
+            const repetitionArray = JSON.stringify(repetition);
+            console.log("weightArray : ", weightArray);
+            console.log("set : ", set);
+            console.log("weightArray.length : ", weightArray.length);
 
-      if (exerciseType === 'Aerobic') {
-          await AerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
-      } else if (exerciseType === 'Anaerobic') {
-          await AnaerobicExercise.update(details, { where: { exerciseId: log.exerciseId } });
-      }
+            await AnaerobicExercise.update(
+                { set: set, weight: weightArray, repetition: repetitionArray, exerciseTime: exerciseTime },
+                { where: { exerciseLogId: log.exerciseLogId } }
+            );
+        }
 
-      await log.update({ exerciseType, exerciseDate });
-      res.json({ message: 'Exercise log updated successfully' });
-  } catch (error) {
-      console.error('Error updating exercise log:', error);
-      res.status(500).json({ message: 'Error updating exercise log', error: error.toString() });
-  }
+        res.json({ message: 'Exercise log updated successfully' });
+    } catch (error) {
+        console.error('Error updating exercise log:', error);
+        res.status(500).json({ message: 'Error updating exercise log', error: error.toString() });
+    }
 });
 
+router.post('/getTrainingLog', async (req, res) => {
+    const { exerciseLogId } = req.body;
+  
+    try {
+      const log = await ExerciseLog.findOne({
+        where: { exerciseLogId: exerciseLogId }
+      });
+  
+      if (!log) {
+        return res.status(404).json({ message: 'No exercise log found' });
+      }
+  
+      let exerciseDetails;
+  
+      if (log.exerciseType === 'AerobicExercise') {
+        const aerobic = await AerobicExercise.findOne({
+          where: { exerciseLogId: log.exerciseLogId }
+        });
+        exerciseDetails = {
+          distance: aerobic.distance,
+          exerciseTime: aerobic.exerciseTime
+        };
+      } else if (log.exerciseType === 'AnaerobicExercise') {
+        const anaerobic = await AnaerobicExercise.findOne({
+          where: { exerciseLogId: log.exerciseLogId }
+        });
+  
+        // weight와 repetition을 배열 형태로 변환
+        const weights = JSON.parse(anaerobic.weight);
+        const repetitions = JSON.parse(anaerobic.repetition);
+  
+        exerciseDetails = {
+          set: weights.length,
+          weight: weights,
+          repetition: repetitions,
+          exerciseTime: anaerobic.exerciseTime
+        };
+      } else {
+        exerciseDetails = log; // 다른 유형의 운동 로그가 있을 경우 기본 로그 반환
+      }
+  
+      const response = {
+        exerciseLogId: log.exerciseLogId,
+        exerciseType: log.exerciseType,
+        ...exerciseDetails
+      };
+  
+      res.json(response);
+    } catch (error) {
+      console.error('Error retrieving exercise log:', error); // 로그에 오류 정보를 출력
+      res.status(500).json({ message: 'Error retrieving exercise log', error: error.toString() });
+    }
+  });
+
 // DELETE 요청: 특정 운동 기록 삭제
-router.delete('/:exerciseLogId', async (req, res) => {
-  const { exerciseLogId } = req.params;
+router.delete('/exerciseLog', async (req, res) => {
+  const { exerciseLogId } = req.body;
 
   try {
       const log = await ExerciseLog.findByPk(exerciseLogId);
@@ -231,10 +315,10 @@ router.delete('/:exerciseLogId', async (req, res) => {
           return res.status(404).json({ message: 'Exercise log not found' });
       }
 
-      if (log.exerciseType === 'Aerobic') {
-          await AerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
-      } else if (log.exerciseType === 'Anaerobic') {
-          await AnaerobicExercise.destroy({ where: { exerciseId: log.exerciseId } });
+      if (log.exerciseType === 'AerobicExercise') {
+          await AerobicExercise.destroy({ where: { exerciseLogId: log.exerciseLogId } });
+      } else if (log.exerciseType === 'AnaerobicExercise') {
+          await AnaerobicExercise.destroy({ where: { exerciseLogId: log.exerciseLogId } });
       }
 
       await log.destroy();
@@ -246,66 +330,66 @@ router.delete('/:exerciseLogId', async (req, res) => {
 });
 
 // GET 요청: 특정 사용자의 특정 월의 운동 기록 조회
-router.post('/exerciseCalender', async (req, res) => {
-  const { userId, month } = req.body;
+router.post('/exerciseCalendar', async (req, res) => {
+    const { userId, month } = req.body;
+  
+    console.log('Received userId:', userId);
+    console.log('Received month:', month);
+  
+    try {
+        const startDate = new Date(`${month}-01`);
+        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+  
+        const exerciseLogs = await ExerciseLog.findAll({
+            where: {
+                userId: userId,
+                exerciseDate: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
 
-  console.log('Received userId:', userId); // 로그 추가
-  console.log('Received month:', month); // 로그 추가
+        });
 
-  try {
-      const startDate = new Date(`${month}-01`);
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-
-      const exerciseLogs = await ExerciseLog.findAll({
-          where: {
-              userId: userId,
-              exerciseDate: {
-                  [Op.between]: [startDate, endDate]
-              }
-          }
-      });
-
-      if (exerciseLogs.length === 0) {
-          return res.status(404).json({ message: 'No exercise logs found' });
-      }
-
-      const responses = await Promise.all(exerciseLogs.map(async (log) => {
-          if (log.exerciseType === 'Aerobic') {
-              const aerobic = await AerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
-              });
-              return {
-                  exerciseName: log.exerciseName,
-                  exerciseDate: log.exerciseDate,
-                  exerciseType: log.exerciseType,
-                  distance: aerobic.distance,
-                  exerciseTime: aerobic.exerciseTime
+        const exercise = await ExerciseList.findOne({
+            where: {
+              exerciseId: log.exerciseId
+            }
+          });
+  
+        if (exerciseLogs.length === 0) {
+            return res.status(404).json({ message: 'No exercise logs found' });
+        }
+  
+        const responses = await Promise.all(exerciseLogs.map(async (log) => {
+            let exerciseDetails = {
+                exerciseName: exercise.exerciseName,
+                exerciseDate: log.exerciseDate,
+                exerciseType: log.exerciseType
               };
-          } else if (log.exerciseType === 'Anaerobic') {
-              const anaerobic = await AnaerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
-              });
-              return {
-                  exerciseName: log.exerciseName,
-                  exerciseDate: log.exerciseDate,
-                  exerciseType: log.exerciseType,
-                  set: anaerobic.set,
-                  weight: anaerobic.weight,
-                  repetition: anaerobic.repetition
-              };
-          } else {
-              return log; // 다른 유형의 운동 로그가 있을 경우 기본 로그 반환
-          }
-      }));
-
-      res.json(responses);
-  } catch (error) {
-      console.error('Error retrieving exercise logs:', error); // 로그에 오류 정보를 출력
-      res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
-  }
+  
+            if (log.exerciseType === 'AerobicExercise') {
+                const aerobic = await AerobicExercise.findOne({
+                    where: { exerciseLogId: log.exerciseLogId }
+                });
+                exerciseDetails.distance = aerobic ? aerobic.distance : null;
+            } else if (log.exerciseType === 'AnaerobicExercise') {
+                const anaerobic = await AnaerobicExercise.findOne({
+                    where: { exerciseLogId: log.exerciseLogId }
+                });
+                exerciseDetails.set = anaerobic ? anaerobic.set : null;
+            }
+  
+            return exerciseDetails;
+        }));
+  
+        res.json(responses);
+    } catch (error) {
+        console.error('Error retrieving exercise logs:', error);
+        res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
+    }
 });
 
-router.get('/exerciseCalendar', async (req, res) => {
+router.get('/exerciseCalender', async (req, res) => {
   const { userId, month } = req.query;
 
   console.log('Received userId:', userId);
@@ -333,9 +417,9 @@ router.get('/exerciseCalendar', async (req, res) => {
       }
 
       const responses = await Promise.all(exerciseLogs.map(async (log) => {
-          if (log.exerciseType === 'Aerobic') {
+          if (log.exerciseType === 'AerobicExercise') {
               const aerobic = await AerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
+                  where: { exerciseLogId: log.exerciseLogId }
               });
               return {
                   exerciseLogId: log.exerciseLogId,
@@ -344,9 +428,9 @@ router.get('/exerciseCalendar', async (req, res) => {
                   distance: aerobic.distance,
                   exerciseTime: aerobic.exerciseTime
               };
-          } else if (log.exerciseType === 'Anaerobic') {
+          } else if (log.exerciseType === 'AnaerobicExercise') {
               const anaerobic = await AnaerobicExercise.findOne({
-                  where: { exerciseId: log.exerciseId }
+                  where: { exerciseLogId: log.exerciseLogId }
               });
               return {
                   exerciseLogId: log.exerciseLogId,

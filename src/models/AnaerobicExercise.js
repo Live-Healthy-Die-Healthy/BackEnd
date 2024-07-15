@@ -26,7 +26,7 @@ module.exports = class AnaerobicExercise extends Sequelize.Model {
             allowNull: false,
           },
           exerciseTime: {
-            type: DataTypes.TIME,
+            type: DataTypes.INTEGER,
             allowNull: false,
           }
     }, {

@@ -17,7 +17,7 @@ module.exports = class AerobicExercise extends Sequelize.Model {
             allowNull: false,
           },
           exerciseTime: {
-            type: DataTypes.TIME,
+            type: DataTypes.INTEGER,
             allowNull: false,
           }
     }, {
@@ -31,4 +31,5 @@ module.exports = class AerobicExercise extends Sequelize.Model {
       collate: 'utf8_general_ci',
     });
   }
+  
 }
