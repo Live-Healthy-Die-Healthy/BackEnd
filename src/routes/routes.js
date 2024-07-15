@@ -63,6 +63,7 @@ router.post('/exerciseLog', async (req, res) => {
     }
 });
 
+/*
 router.get('/:userId/:exerciseDate', async (req, res) => {
     const { userId, exerciseDate } = req.params;
 
@@ -120,6 +121,7 @@ router.get('/:userId/:exerciseDate', async (req, res) => {
         res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
     }
 });
+*/
 
 // PUT 요청: 특정 운동 기록 수정
 router.put('/:exerciseLogId', async (req, res) => {
@@ -172,7 +174,6 @@ router.delete('/:exerciseLogId', async (req, res) => {
     }
 });
 
-// GET 요청: 특정 사용자의 특정 월의 운동 기록 조회
 router.post('/exerciseCalender', async (req, res) => {
     const { userId, month } = req.body;
 
@@ -232,6 +233,7 @@ router.post('/exerciseCalender', async (req, res) => {
     }
 });
 
+/*
 router.get('/exerciseCalendar', async (req, res) => {
     const { userId, month } = req.query;
 
@@ -294,5 +296,6 @@ router.get('/exerciseCalendar', async (req, res) => {
         res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
     }
 });
+*/
 
 module.exports = router;
