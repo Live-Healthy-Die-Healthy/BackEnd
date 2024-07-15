@@ -5,8 +5,8 @@ const { ExerciseLog, AerobicExercise, AnaerobicExercise, sequelize } = require('
 
 router.use(express.json());
 
-router.get('/:userId/:exerciseDate', async (req, res) => {
-    const { userId, exerciseDate } = req.params;
+router.post('exerciseLog', async (req, res) => {
+    const { userId, exerciseDate } = req.body;
 
     console.log('exerciseDate', exerciseDate);
 
