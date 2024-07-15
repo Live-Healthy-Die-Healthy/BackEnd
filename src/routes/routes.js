@@ -1,17 +1,17 @@
 const express = require('express');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { User } = require('../index');
+const { kakaoAccessToken } = require('../controllers/loginController')
 
-// 로그인 페이지
-router.post('/login', async (req, res) => {
-  // 카카오 로그인 API를 사용한 인증 처리
-  // 토큰을 받아와서 사용자 정보를 데이터베이스에 저장하거나 조회
-  res.send('로그인 성공');
-});
+console.log('Routes loaded');
 
 // 사용자 존재 여부 확인
 router.post('/checkUser', async (req, res) => {
+    console.log("testCheckUser");
     const { userId } = req.body;
+    console.log(userId);
     try {
       const user = await User.findOne({ where: { userId } });
       res.status(200).json({ isExist: !!user });
@@ -21,49 +21,32 @@ router.post('/checkUser', async (req, res) => {
     }
   });
 
-  router.post('/auth/kakao/accesstoken', async (req, res) => {
-    const { code } = req.body;
-    try {
-      const response = await axios.post('https://kauth.kakao.com/oauth/token', null, {
-        params: {
-          grant_type: 'authorization_code',
-          client_id: '505f1b53b08b6f0a2d14eb6210715a87', // 환경 변수 또는 설정 파일에서 가져오기
-          redirect_uri: 'http://localhost:3000/auth/kakao/callback', // 환경에 맞게 설정
-          code,
-        },
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-      const { access_token } = response.data;
-      res.status(200).json({ accessToken: access_token });
-    } catch (error) {
-      console.error('토큰 요청 오류:', error);
-      res.status(500).json({ message: '토큰 요청 실패' });
-    }
-  });
+  router.post('/auth/kakao/accesstoken', kakaoAccessToken);
 
-  // 사용자 프로필 업데이트
-router.post('/profile', async (req, res) => {
-    const { userId, username, userBirth, userHeight, userWeight, userGender, userImage } = req.body;
+  // 사용자 프로필 등록
+  router.post('/profile', async (req, res) => {
+    console.log('Received request on /profile');
+    const connectedAt = new Date();
+    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender, userImage } = req.body;
+    const username = userNickname;
+    console.log("Gender: ", userGender);
     try {
-      let user = await User.findOne({ where: { userId } });
-      if (user) {
-        user = await user.update({
-          username,
-          userBirth,
-          userHeight,
-          userWeight,
-          userGender,
-          userImage
-        });
-        res.status(200).json(user);
-      } else {
-        res.status(404).json({ message: '사용자를 찾을 수 없음' });
-      }
+      // 새로운 사용자 프로필 등록
+      const newUser = await User.create({
+        userId,
+        userEmail,
+        username,
+        userBirth,
+        userHeight,
+        userWeight,
+        userGender,
+        userImage,
+        connectedAt
+      });
+      res.status(200).json(newUser);
     } catch (error) {
-      console.error('프로필 업데이트 오류:', error);
-      res.status(500).json({ message: '프로필 업데이트 실패' });
+      console.error('프로필 등록 오류:', error);
+      res.status(500).json({ message: '프로필 등록 실패' });
     }
   });
 

@@ -12,19 +12,21 @@ module.exports = class User extends Sequelize.Model {
       },
       username: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+        defaultValue: '사용자',
       },
       connectedAt: {
         type: DataTypes.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+        defaultValue: '1234',
       },
       userEmail: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       userBirth: {
         type: DataTypes.DATE,
