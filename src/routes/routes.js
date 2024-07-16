@@ -25,8 +25,8 @@ router.post('/checkUser', async (req, res) => {
   router.post('/auth/kakao/accesstoken', kakaoAccessToken);
 
   // 사용자 프로필 등록
-  router.post('/profile', async (req, res) => {
-    console.log('Received request on /profile');
+  router.post('/newProfile', async (req, res) => {
+    console.log('Received request on /newProfile');
     const connectedAt = new Date();
     const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender, userImage } = req.body;
     const username = userNickname;
@@ -336,6 +336,49 @@ router.post('/exerciseCalendar', async (req, res) => {
   } catch (error) {
       console.error('Error retrieving exercise logs:', error);
       res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
+  }
+});
+
+//프로필 페이지 - 사용자 정보 조회
+
+router.post('/profile', async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+      const user = await User.findOne({ where: { userId } });
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+      res.status(200).json(user);
+  } catch (error) {
+      console.error('Error retrieving user profile:', error);
+      res.status(500).json({ message: 'Failed to retrieve user profile' });
+  }
+});
+
+//프로필 수정 - 사용자 정보 수정
+
+router.put('/profile', async (req, res) => {
+  const { userId, username, userBirth, userHeight, userWeight, userImage } = req.body;
+
+  try {
+      const user = await User.findOne({ where: { userId } });
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      user.username = username;
+      user.userBirth = userBirth;
+      user.userHeight = userHeight;
+      user.userWeight = userWeight;
+      user.userImage = userImage;
+
+      await user.save();
+
+      res.status(200).json(user);
+  } catch (error) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ message: 'Failed to update user profile' });
   }
 });
 
