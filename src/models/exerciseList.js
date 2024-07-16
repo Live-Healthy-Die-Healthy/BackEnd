@@ -35,7 +35,5 @@ module.exports = class ExerciseList extends Sequelize.Model {
       collate: 'utf8_general_ci',
     });
   }
-  static associate(models) {
-    this.hasMany(models.ExerciseLog, { foreignKey: 'exerciseId', as: 'ExerciseLogs' }); // alias 수정
-  }
+
 }
