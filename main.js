@@ -61,35 +61,35 @@ const initializeApp = async () => {
       exerciseName: 'Push Up',
       exerciseType: 'AnaerobicExercise',
       exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'Chest',  // 주요 부위 변경
+      exercisePart: 'chest',  // 주요 부위 변경
     },
     {
       exerciseId: 2,
       exerciseName: 'Jogging',
       exerciseType: 'AerobicExercise',
       exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'Full Body',  // 운동 부위 변경
+      exercisePart: 'AerobicExercise',  // 운동 부위 변경
     },
     {
       exerciseId: 3,
       exerciseName: 'Squats',
       exerciseType: 'AnaerobicExercise',
       exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'Legs',  // 주요 부위 변경
+      exercisePart: 'leg',  // 주요 부위 변경
     },
     {
       exerciseId: 4,
       exerciseName: 'Cycling',
       exerciseType: 'AerobicExercise',
       exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'Legs',  // 운동 부위
+      exercisePart: 'AerobicExercise',  // 운동 부위
     },
     {
       exerciseId: 5,
       exerciseName: 'Pull Up',
       exerciseType: 'AnaerobicExercise',
       exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'Back',  // 주요 부위
+      exercisePart: 'back',  // 주요 부위
     }
   ]);
   console.log('ExerciseList added');
