@@ -29,12 +29,18 @@ const AnaerobicExercise = require('./models/AnaerobicExercise');
 const ExerciseList = require('./models/exerciseList');
 const ExerciseLog = require('./models/exerciseLog');
 const User = require('./models/user');
+const DietLog = require('./models/dietLog');
+const DietLogDetail = require('./models/dietLogDetail');
+const MenuList = require('./models/menuList');
 
 User.init(sequelize);
 AerobicExercise.init(sequelize);
 AnaerobicExercise.init(sequelize);
 ExerciseList.init(sequelize);
 ExerciseLog.init(sequelize);
+DietLog.init(sequelize);
+DietLogDetail.init(sequelize);
+MenuList.init(sequelize);
 
 
 db.User = User;
@@ -42,6 +48,9 @@ db.AerobicExercise = AerobicExercise;
 db.AnaerobicExercise = AnaerobicExercise;
 db.ExerciseList = ExerciseList;
 db.ExerciseLog = ExerciseLog;
+db.DietLog = DietLog;
+db.DietLogDetail = DietLogDetail;
+db.MenuList = MenuList;
 
 // 모델 간의 관계 설정
 Object.keys(db).forEach(modelName => {

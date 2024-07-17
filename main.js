@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise } = require('./src/index');
+const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise, DietLog, DietLogDetail, MenuList } = require('./src/index');
 const routes = require('./src/routes/exerciseRoute');
 const routes2 = require('./src/routes/routes');
 
@@ -93,6 +93,57 @@ const initializeApp = async () => {
     }
   ]);
   console.log('ExerciseList added');
+
+    // MenuList 데이터 추가
+    await MenuList.bulkCreate([
+      {
+        menuId: 1,
+        menuName: 'Salad',
+        menuCalorie: 150,
+        menuImage: Buffer.from([]),
+      },
+      {
+        menuId: 2,
+        menuName: 'Chicken Breast',
+        menuCalorie: 200,
+        menuImage: Buffer.from([]),
+      },
+    ]);
+    console.log('MenuList added');
+  
+    // DietLog 데이터 추가
+    await DietLog.bulkCreate([
+      {
+        dietLogId: 1,
+        dietDate: new Date(),
+        dietType: 'Breakfast',
+        userId: '1234'
+      },
+      {
+        dietLogId: 2,
+        dietDate: new Date(),
+        dietType: 'Lunch',
+        userId: 'test1'
+      },
+    ]);
+    console.log('DietLog added');
+  
+    // DietLogDetail 데이터 추가
+    await DietLogDetail.bulkCreate([
+      {
+        dietDetailLogId: 1,
+        quantity: 1,
+        dietLogId: 1,
+        menuId: 1
+      },
+      {
+        dietDetailLogId: 2,
+        quantity: 2,
+        dietLogId: 2,
+        menuId: 2
+      },
+    ]);
+    console.log('DietLogDetail added');
 
   console.log('test data uploaded');
 };
