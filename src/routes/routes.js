@@ -522,14 +522,25 @@ router.post('/dietDetail/:dietType', async (req, res) => {
   const { userId, date } = req.body;
   const { dietType } = req.params;
 
+  console.log('Received userId:', userId);
+  console.log('Received date:', date);
+  console.log('Received dietType:', dietType);
+
   try {
-    const inputDate = new Date(date);
-    if (isNaN(inputDate)) {
+    if (!dietType || typeof dietType !== 'string' || dietType.trim() === '') {
+      throw new Error('Invalid diet type');
+    }
+
+    if (!date || isNaN(Date.parse(date))) {
       throw new Error('Invalid date format');
     }
 
+    const inputDate = new Date(date);
     const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
     const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
 
 
     // 해당 날짜와 식단 유형에 해당하는 DietLog 찾기
@@ -562,11 +573,119 @@ router.post('/dietDetail/:dietType', async (req, res) => {
       calories: parseFloat((detail.quantity * detail.menu.menuCalorie).toFixed(2)),
       quantity: detail.quantity
     }));
+    
 
     res.json(response);
   } catch (error) {
     console.error('Error retrieving diet details:', error);
     res.status(500).json({ message: 'Error retrieving diet details', error: error.message });
+  }
+});
+
+// PUT 요청: 특정 식단 세부 기록의 수량 수정
+router.put('/dietDetail/:dietDetailLogId', async (req, res) => {
+  const { dietDetailLogId } = req.params;
+  const { quantity } = req.body;
+
+  console.log('Received dietDetailLogId:', dietDetailLogId);
+  console.log('Received quantity:', quantity);
+
+  try {
+    // 식단 세부 기록 찾기
+    const dietDetail = await DietLogDetail.findByPk(dietDetailLogId);
+
+    if (!dietDetail) {
+      return res.status(404).json({ message: 'Diet detail not found' });
+    }
+
+    // 수량 업데이트
+    dietDetail.quantity = quantity;
+    await dietDetail.save();
+
+    console.log(`Updated dietDetailLogId ${dietDetailLogId} with quantity ${quantity}`);
+
+    res.json({ message: 'Quantity updated successfully', dietDetail });
+  } catch (error) {
+    console.error('Error updating quantity:', error);
+    res.status(500).json({ message: 'Error updating quantity', error: error.message });
+  }
+});
+
+// DELETE 요청: 특정 식단 세부 기록 삭제
+router.delete('/dietDetail/:dietDetailLogId', async (req, res) => {
+  const { dietDetailLogId } = req.params;
+
+
+  console.log('Received dietDetailLogId:', dietDetailLogId);
+
+  try {
+    // 식단 세부 기록 찾기
+    const dietDetail = await DietLogDetail.findByPk(dietDetailLogId);
+
+    if (!dietDetail) {
+      return res.status(404).json({ message: 'Diet detail not found' });
+    }
+
+    // 식단 세부 기록 삭제
+    await dietDetail.destroy();
+
+    console.log(`Deleted dietDetailLogId ${dietDetailLogId}`);
+
+    res.json({ message: 'Diet detail deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting diet detail:', error);
+    res.status(500).json({ message: 'Error deleting diet detail', error: error.message });
+  }
+});
+
+// POST 요청: 식단 기록 추가
+router.post('/addDiet', async (req, res) => {
+  const { userId, dietDate, dietType, menuId, quantity } = req.body;
+
+  console.log('Received userId:', userId);
+  console.log('Received dietDate:', dietDate);
+  console.log('Received dietType:', dietType);
+  console.log('Received menuId:', menuId);
+  console.log('Received quantity:', quantity);
+
+  try {
+    // 새로운 식단 로그 생성
+    const newDietLog = await DietLog.create({
+      userId: userId,
+      dietDate: dietDate,
+      dietType: dietType
+    });
+
+    // 새로운 식단 세부 기록 생성
+    const newDietLogDetail = await DietLogDetail.create({
+      dietLogId: newDietLog.dietLogId,
+      menuId: menuId,
+      quantity: quantity
+    });
+
+    console.log('New diet log created:', newDietLog);
+    console.log('New diet log detail created:', newDietLogDetail);
+
+    res.json({
+      message: 'Diet log and details added successfully',
+      dietLog: newDietLog,
+      dietLogDetail: newDietLogDetail
+    });
+  } catch (error) {
+    console.error('Error adding diet log and details:', error);
+    res.status(500).json({ message: 'Error adding diet log and details', error: error.message });
+  }
+});
+
+// GET 요청: 모든 메뉴 항목 조회
+router.get('/menuList', async (req, res) => {
+  try {
+    const menuItems = await MenuList.findAll();
+
+    res.json(menuItems);
+  } catch (error) {
+    console.error('Error retrieving menu list:', error);
+    res.status(500).json({ message: 'Error retrieving menu list', error: error.message });
   }
 });
 
