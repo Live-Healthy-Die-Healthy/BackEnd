@@ -536,15 +536,14 @@ router.post('/dietDetail/:dietType', async (req, res) => {
     }
 
     const inputDate = new Date(date);
-    const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
-    const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 0, 0, 0, 0);
+    const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 23, 59, 59, 999);
 
     console.log("startDate:", startDate);
     console.log("endDate:", endDate);
 
-
     // 해당 날짜와 식단 유형에 해당하는 DietLog 찾기
-    const dietLog = await DietLog.findOne({
+    const dietLogs = await DietLog.findAll({
       where: {
         userId: userId,
         dietType: dietType,
@@ -562,25 +561,28 @@ router.post('/dietDetail/:dietType', async (req, res) => {
       }]
     });
 
-    if (!dietLog) {
+    if (dietLogs.length === 0) {
       return res.status(404).json({ message: 'No diet log found for the given type and date' });
     }
 
     // 식단 세부 정보 계산
-    const response = dietLog.details.map(detail => ({
-      dietDetailLogId: detail.dietDetailLogId,
-      menuName: detail.menu.menuName,
-      calories: parseFloat((detail.quantity * detail.menu.menuCalorie).toFixed(2)),
-      quantity: detail.quantity
-    }));
-    
+    const response = dietLogs.flatMap(dietLog => 
+      dietLog.details.map(detail => ({
+        dietDetailLogId: detail.dietDetailLogId,
+        menuName: detail.menu.menuName,
+        calories: parseFloat((detail.quantity * detail.menu.menuCalorie).toFixed(2)),
+        quantity: detail.quantity
+      }))
+    );
 
+    console.log("response:", response);
     res.json(response);
   } catch (error) {
     console.error('Error retrieving diet details:', error);
     res.status(500).json({ message: 'Error retrieving diet details', error: error.message });
   }
 });
+
 
 // PUT 요청: 특정 식단 세부 기록의 수량 수정
 router.put('/dietDetail/:dietDetailLogId', async (req, res) => {
