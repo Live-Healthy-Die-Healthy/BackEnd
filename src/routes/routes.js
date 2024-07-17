@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
+const { parseISO, isValid } = require('date-fns');
 const { kakaoAccessToken } = require('../controllers/loginController')
 const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList } = require('../index');
 const { Op, Sequelize } = require('sequelize'); //이거 고침
@@ -382,18 +383,21 @@ router.put('/profile', async (req, res) => {
   }
 });
 
-// 특정 날짜의 사용자 식단 총 칼로리 계산
+// POST 요청: 특정 사용자의 특정 월의 식단 기록 조회
 router.post('/dietCalender', async (req, res) => {
   const { userId, date } = req.body;
 
-  try {
-    // 입력된 날짜의 시작과 끝을 정의
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+  console.log('Received userId:', userId);
+  console.log('Received date:', date);
 
-    // 해당 날짜에 해당하는 DietLog 찾기
+  try {
+    const inputDate = new Date(date);
+    const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
+    const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
+
     const dietLogs = await DietLog.findAll({
       where: {
         userId: userId,
@@ -411,27 +415,39 @@ router.post('/dietCalender', async (req, res) => {
       }]
     });
 
-    // 총 칼로리 계산
-    let totalCalories = 0.0;
-    dietLogs.forEach(dietLog => {
-      dietLog.details.forEach(detail => {
+    console.log("dietLogs:", dietLogs);
+
+    if (dietLogs.length === 0) {
+      return res.status(404).json({ message: 'No diet logs found' });
+    }
+
+    // 날짜별로 그룹화하여 총 칼로리를 계산
+    const caloriesByDate = dietLogs.reduce((acc, log) => {
+      const logDate = log.dietDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식으로 변환
+      const totalCaloriesForLog = log.details.reduce((total, detail) => {
         const calories = detail.quantity * detail.menu.menuCalorie;
-        console.log(`Quantity: ${detail.quantity}, Calorie per unit: ${detail.menu.menuCalorie}, Total Calories for this item: ${calories}`);
-        totalCalories += calories;
-      });
-    });
+        return total + calories;
+      }, 0);
 
-    // 총 칼로리를 소수점 두 자리로 제한
-    totalCalories = parseFloat(totalCalories.toFixed(2));
-    console.log(`Total Calories before rounding: ${totalCalories}`);
+      if (!acc[logDate]) {
+        acc[logDate] = 0;
+      }
+      acc[logDate] += totalCaloriesForLog;
+      return acc;
+    }, {});
 
-    res.json({ date: date, calories: totalCalories });
+    // 응답 형식으로 변환
+    const response = Object.keys(caloriesByDate).map(date => ({
+      date: date,
+      calories: parseFloat(caloriesByDate[date].toFixed(2))
+    }));
+
+    res.json(response);
   } catch (error) {
-    console.error('Error calculating total calories:', error);
-    res.status(500).json({ message: 'Error calculating total calories' });
+    console.error('Error retrieving diet logs:', error);
+    res.status(500).json({ message: 'Error retrieving diet logs', error: error.toString() });
   }
 });
-
 // 특정 날짜의 사용자 식단 로그 및 총 칼로리 계산
 router.post('/dailyDiet', async (req, res) => {
   const { userId, date } = req.body;
@@ -498,6 +514,59 @@ router.post('/dailyDiet', async (req, res) => {
   } catch (error) {
     console.error('Error retrieving daily diet:', error);
     res.status(500).json({ message: 'Error retrieving daily diet', error: error.message });
+  }
+});
+
+// 특정 날짜의 특정 식단 유형의 세부 식단 정보 및 총 칼로리 계산
+router.post('/dietDetail/:dietType', async (req, res) => {
+  const { userId, date } = req.body;
+  const { dietType } = req.params;
+
+  try {
+    const inputDate = new Date(date);
+    if (isNaN(inputDate)) {
+      throw new Error('Invalid date format');
+    }
+
+    const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
+    const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+
+    // 해당 날짜와 식단 유형에 해당하는 DietLog 찾기
+    const dietLog = await DietLog.findOne({
+      where: {
+        userId: userId,
+        dietType: dietType,
+        dietDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
+    });
+
+    if (!dietLog) {
+      return res.status(404).json({ message: 'No diet log found for the given type and date' });
+    }
+
+    // 식단 세부 정보 계산
+    const response = dietLog.details.map(detail => ({
+      dietDetailLogId: detail.dietDetailLogId,
+      menuName: detail.menu.menuName,
+      calories: parseFloat((detail.quantity * detail.menu.menuCalorie).toFixed(2)),
+      quantity: detail.quantity
+    }));
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error retrieving diet details:', error);
+    res.status(500).json({ message: 'Error retrieving diet details', error: error.message });
   }
 });
 
