@@ -11,7 +11,7 @@ module.exports = class DietLogDetail extends Sequelize.Model {
         autoIncrement: true,
       },
       quantity: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         allowNull: false,
       },
       dietLogId: {

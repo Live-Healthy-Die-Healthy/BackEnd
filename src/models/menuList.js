@@ -19,7 +19,7 @@ module.exports = class MenuList extends Sequelize.Model {
         allowNull: true,
       },
       menuCalorie: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         allowNull: false,
       },
     }, {

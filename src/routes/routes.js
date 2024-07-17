@@ -3,7 +3,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { kakaoAccessToken } = require('../controllers/loginController')
-const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User } = require('../index');
+const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList } = require('../index');
 const { Op, Sequelize } = require('sequelize'); //이거 고침
 
 console.log('Routes loaded');
@@ -379,6 +379,125 @@ router.put('/profile', async (req, res) => {
   } catch (error) {
       console.error('Error updating user profile:', error);
       res.status(500).json({ message: 'Failed to update user profile' });
+  }
+});
+
+// 특정 날짜의 사용자 식단 총 칼로리 계산
+router.post('/dietCalender', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+    // 입력된 날짜의 시작과 끝을 정의
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    // 해당 날짜에 해당하는 DietLog 찾기
+    const dietLogs = await DietLog.findAll({
+      where: {
+        userId: userId,
+        dietDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
+    });
+
+    // 총 칼로리 계산
+    let totalCalories = 0.0;
+    dietLogs.forEach(dietLog => {
+      dietLog.details.forEach(detail => {
+        const calories = detail.quantity * detail.menu.menuCalorie;
+        console.log(`Quantity: ${detail.quantity}, Calorie per unit: ${detail.menu.menuCalorie}, Total Calories for this item: ${calories}`);
+        totalCalories += calories;
+      });
+    });
+
+    // 총 칼로리를 소수점 두 자리로 제한
+    totalCalories = parseFloat(totalCalories.toFixed(2));
+    console.log(`Total Calories before rounding: ${totalCalories}`);
+
+    res.json({ date: date, calories: totalCalories });
+  } catch (error) {
+    console.error('Error calculating total calories:', error);
+    res.status(500).json({ message: 'Error calculating total calories' });
+  }
+});
+
+// 특정 날짜의 사용자 식단 로그 및 총 칼로리 계산
+router.post('/dailyDiet', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+    // 입력된 날짜의 시작과 끝을 정의
+    const startDate = new Date(date);
+    if (isNaN(startDate)) {
+      throw new Error('Invalid date format');
+    }
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    if (isNaN(endDate)) {
+      throw new Error('Invalid date format');
+    }
+    endDate.setHours(23, 59, 59, 999);
+
+    // 해당 날짜에 해당하는 DietLog 찾기
+    const dietLogs = await DietLog.findAll({
+      where: {
+        userId: userId,
+        dietDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
+    });
+
+    // 식사 유형별로 데이터를 분류하고 칼로리 계산
+    const dietData = {
+      breakfast: { totalCalories: 0, menuNames: [] },
+      lunch: { totalCalories: 0, menuNames: [] },
+      dinner: { totalCalories: 0, menuNames: [] },
+      snack: { totalCalories: 0, menuNames: [] }
+    };
+
+    dietLogs.forEach(dietLog => {
+      const type = dietLog.dietType.toLowerCase();
+      if (dietData[type]) {
+        dietLog.details.forEach(detail => {
+          const calories = detail.quantity * detail.menu.menuCalorie;
+          dietData[type].totalCalories += calories;
+          dietData[type].menuNames.push(detail.menu.menuName);
+        });
+      }
+    });
+
+    // 응답 데이터 형식에 맞게 변환
+    const response = Object.keys(dietData).map(type => ({
+      dietLogId: dietLogs.find(log => log.dietType.toLowerCase() === type)?.dietLogId || null,
+      dietType: type,
+      calories: parseFloat(dietData[type].totalCalories.toFixed(2)),
+      menuNames: dietData[type].menuNames
+    }));
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error retrieving daily diet:', error);
+    res.status(500).json({ message: 'Error retrieving daily diet', error: error.message });
   }
 });
 
