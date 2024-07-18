@@ -45,7 +45,7 @@ module.exports = class User extends Sequelize.Model {
         allowNull: false,
       },
       userImage: {
-        type: DataTypes.BLOB('long'),
+        type: DataTypes.BLOB('medium'),
         allowNull: true,
       },
     }, {
