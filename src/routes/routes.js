@@ -5,9 +5,30 @@ const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
 const { kakaoAccessToken } = require('../controllers/loginController')
 const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList } = require('../index');
-const { Op, Sequelize } = require('sequelize'); //이거 고침
+const { Op, Sequelize } = require('sequelize'); 
 
-console.log('Routes loaded');
+const bodyParser = require('body-parser');
+
+const app = express(); // app 인스턴스를 추가로 생성
+
+app.use(bodyParser.urlencoded({    
+  limit: "50mb",
+  extended: true, // true로 변경
+}));
+
+app.use(bodyParser.json({   
+  limit: "50mb"
+}));
+
+// 라우터 사용 시에도 동일하게 설정
+router.use(express.urlencoded({    
+  limit:"50mb",
+  extended: true, // true로 변경
+}));
+
+router.use(express.json({   
+  limit : "50mb"
+}));
 
 // 사용자 존재 여부 확인
 router.post('/checkUser', async (req, res) => {
@@ -28,10 +49,22 @@ router.post('/checkUser', async (req, res) => {
   // 사용자 프로필 등록
   router.post('/newProfile', async (req, res) => {
     console.log('Received request on /newProfile');
+
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+
     const connectedAt = new Date();
     const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender, userImage } = req.body;
     const username = userNickname;
-    console.log("Gender: ", userGender);
+    console.log("userImage: ", userImage);
+
+    let imageBuffer = null;
+    if (userImage && userImage.startsWith('data:image')) {
+      const base64Data = userImage.split(',')[1];
+      imageBuffer = Buffer.from(base64Data, 'base64');
+    }
+    console.log("imageBuffer: ", imageBuffer);
+
+
     try {
       // 새로운 사용자 프로필 등록
       const newUser = await User.create({
@@ -42,7 +75,7 @@ router.post('/checkUser', async (req, res) => {
         userHeight,
         userWeight,
         userGender,
-        userImage,
+        userImage : imageBuffer,
         connectedAt
       });
       res.status(200).json(newUser);
@@ -52,29 +85,6 @@ router.post('/checkUser', async (req, res) => {
     }
   });
 
-// 마이페이지
-router.get('/mypage', async (req, res) => {
-  // 사용자 정보 조회 및 반환
-  res.send('마이페이지 정보');
-});
-
-router.post('/mypage', async (req, res) => {
-  // 사용자 정보 업데이트
-  res.send('마이페이지 업데이트');
-});
-
-// 홈 페이지
-router.get('/exerciseCalender', (req, res) => {
-  res.send('운동 캘린더');
-});
-
-router.get('/exerciseList', (req, res) => {
-  res.send('운동 목록');
-});
-
-router.get('/exerciseLog', (req, res) => {
-  res.send('운동 기록 조회');
-});
 
 
 
@@ -340,20 +350,32 @@ router.post('/exerciseCalendar', async (req, res) => {
   }
 });
 
-//프로필 페이지 - 사용자 정보 조회
-
+// 프로필 페이지 - 사용자 정보 조회
 router.post('/profile', async (req, res) => {
   const { userId } = req.body;
 
   try {
-      const user = await User.findOne({ where: { userId } });
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-      res.status(200).json(user);
+    const user = await User.findOne({ where: { userId } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // 디코딩된 이미지를 포함한 응답 데이터 생성
+    const userProfile = {
+      userId: user.userId,
+      userEmail: user.userEmail,
+      userNickname: user.username,
+      userBirth: user.userBirth,
+      userHeight: user.userHeight,
+      userWeight: user.userWeight,
+      userGender: user.userGender,
+      userImage: user.userImage ? user.userImage.toString('base64') : null, // 디코딩된 이미지 포함
+    };
+
+    res.status(200).json(userProfile);
   } catch (error) {
-      console.error('Error retrieving user profile:', error);
-      res.status(500).json({ message: 'Failed to retrieve user profile' });
+    console.error('Error retrieving user profile:', error);
+    res.status(500).json({ message: 'Failed to retrieve user profile' });
   }
 });
 
@@ -367,12 +389,18 @@ router.put('/profile', async (req, res) => {
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
+      let imageBuffer = null;
+      if (userImage && userImage.startsWith('data:image')) {
+        const base64Data = userImage.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      }
+      console.log("imageBuffer: ", imageBuffer);
 
       user.username = username;
       user.userBirth = userBirth;
       user.userHeight = userHeight;
       user.userWeight = userWeight;
-      user.userImage = userImage;
+      user.userImage = imageBuffer;
 
       await user.save();
 

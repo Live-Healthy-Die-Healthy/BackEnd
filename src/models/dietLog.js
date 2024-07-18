@@ -28,7 +28,7 @@ module.exports = class DietLog extends Sequelize.Model {
         }
       },
       dietImage: {
-        type: DataTypes.BLOB,
+        type: DataTypes.BLOB('long'),
         allowNull: true,
       },
     }, {
