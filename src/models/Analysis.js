@@ -6,9 +6,8 @@ module.exports = class Analysis extends Sequelize.Model {
   static init(sequelize) {
     return super.init({
         analysisId: {
-            type: DataTypes.BIGINT,
+            type: DataTypes.STRING,
             primaryKey: true,
-            autoIncrement: true,
           },
           userId: {
             type: DataTypes.STRING,
@@ -24,7 +23,15 @@ module.exports = class Analysis extends Sequelize.Model {
           },
           result_json: {
             type: DataTypes.JSON,
+            allowNull: true,
+          },
+          status:{
+            type: DataTypes.STRING,
             allowNull: false,
+          },
+          dietDetailLogIds: {
+            type: DataTypes.JSON, 
+            allowNull: true
           }
     }, {
       sequelize,
