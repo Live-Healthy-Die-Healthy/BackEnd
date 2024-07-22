@@ -149,10 +149,36 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
 
 
 
-router.put('/updateDietDetail', async (req, res) => {
+router.put('/updateDietDetail/:analysisId', async (req, res) => {
+  const { analysisId } = req.params;
   const { updatedDetails } = req.body;
 
   try {
+    // 1. analysisId로 Analysis 찾기
+    const analysis = await Analysis.findByPk(analysisId);
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found' });
+    }
+
+    // 2. 프론트에서 받은 dietDetailLogIds
+    const receivedDetailLogIds = updatedDetails.map(detail => detail.dietDetailLogId);
+
+    // 3. Analysis에 저장된 모든 dietDetailLogIds
+    const storedDetailLogIds = analysis.dietDetailLogIds;
+
+    // 4. 삭제해야 할 dietDetailLogIds 찾기
+    const idsToDelete = storedDetailLogIds.filter(id => !receivedDetailLogIds.includes(id));
+
+    // 5. 삭제 실행
+    if (idsToDelete.length > 0) {
+      await DietLogDetail.destroy({
+        where: {
+          dietDetailLogId: idsToDelete
+        }
+      });
+    }
+
+    // 6. 남은 항목 업데이트
     for (const detail of updatedDetails) {
       const { dietDetailLogId, quantity } = detail;
       await DietLogDetail.update(
@@ -161,7 +187,13 @@ router.put('/updateDietDetail', async (req, res) => {
       );
     }
 
-    res.status(200).json({ message: 'Diet details updated successfully' });
+    // 7. Analysis의 dietDetailLogIds 업데이트
+    await Analysis.update(
+      { dietDetailLogIds: receivedDetailLogIds },
+      { where: { analysisId } }
+    );
+
+    res.status(200).json({ message: 'Diet details updated and deleted successfully' });
   } catch (error) {
     console.error('Error updating diet details:', error);
     res.status(500).json({ message: 'Error updating diet details', error: error.message });
