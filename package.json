@@ -15,5 +15,8 @@
     "sequelize": "^6.37.3",
     "sequelize-cli": "^6.6.2",
     "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }

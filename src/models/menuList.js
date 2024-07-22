@@ -26,7 +26,7 @@ module.exports = class MenuList extends Sequelize.Model {
       sequelize,
       timestamps: true,
       underscored: false,
-      modelName: 'MenuList',
+      modelName: 'MenuList',  
       tableName: 'menuList',
       paranoid: false,
       charset: 'utf8',

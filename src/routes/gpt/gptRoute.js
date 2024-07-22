@@ -309,6 +309,7 @@ function mergeAndParseResponses(responses) {
     }
 }
 
+
 async function getGPTResponse(message, imageBase64) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -318,15 +319,18 @@ async function getGPTResponse(message, imageBase64) {
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
   let messages = [
-      { role: "system", content: basePrompt },
-      { role: "user", content: message }
-  ];
-  if (imageBase64) {
-      messages.push({
-          role: "user",
-          content: `Analyze this image: data:image/jpeg;base64,${imageBase64}`
-      });
-  }
+    { role: "system", content: basePrompt },
+    { role: "user", content: message }
+];
+if (imageBase64) {
+    messages.push({
+        role: "user",
+        content: [
+            { type: "text", text: "Analyze this image:" },
+            { type: "image_url", image_url: { url: imageBase64 } }
+        ]
+    });
+}
 
   const payload = {
       model: imageBase64 ? "gpt-4o" : "gpt-4",
