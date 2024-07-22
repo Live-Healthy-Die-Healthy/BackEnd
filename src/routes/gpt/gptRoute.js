@@ -26,6 +26,7 @@ router.use(express.json({
 // 이미지 분석 및 식단 기록 추가 라우트
 router.post('/dietImage' , async (req, res) => {
   const { userId, dietType, dietDate, dietImage } = req.body;
+  console.log("dietDate: ", dietDate);
 
   try {
     // 분석 ID 생성
