@@ -5,6 +5,7 @@ const cors = require('cors');
 const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise, DietLog, DietLogDetail, MenuList } = require('./src/index');
 const routes = require('./src/routes/exerciseRoute');
 const routes2 = require('./src/routes/routes');
+const gptRouter = require('./src/routes/gpt/gptRoute');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -14,6 +15,7 @@ app.use(cors())
 app.use(express.json());
 app.use('/', routes);
 app.use('/', routes2);
+app.use('/gpt', gptRouter);
 
 
 const initializeApp = async () => {
