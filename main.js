@@ -10,6 +10,7 @@ const routes = require('./src/routes/exerciseRoute');
 const routes2 = require('./src/routes/routes');
 const gptRouter = require('./src/routes/gpt/gptRoute');
 const report = require('./src/routes/report');
+const gptReport = require('./src/routes/gpt/gptReport');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -21,6 +22,7 @@ app.use('/', routes);
 app.use('/', routes2);
 app.use('/gpt', gptRouter);
 app.use('/report', report);
+app.use('/gptReport', gptReport);
 
 
 const initializeApp = async () => {
