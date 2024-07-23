@@ -108,12 +108,18 @@ await MenuList.bulkCreate([
     menuName: 'Salad',
     menuCalorie: 0.16,
     menuImage: Buffer.from([]),
+    menuCarbo: 0.1,
+    menuProtein: 0.2,
+    menuFat: 0.3,
   },
   {
     menuId: 2,
     menuName: 'Chicken Breast',
     menuCalorie: 2.8,
     menuImage: Buffer.from([]),
+    menuCarbo: 0.1,
+    menuProtein: 0.2,
+    menuFat: 0.3,
   },
 ]);
 console.log('MenuList added');
