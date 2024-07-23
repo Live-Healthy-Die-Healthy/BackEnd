@@ -2,10 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { sequelize, ExerciseLog, User, ExerciseList, AerobicExercise, AnaerobicExercise, DietLog, DietLogDetail, MenuList } = require('./src/index');
+const { sequelize, ExerciseLog, User, ExerciseList, 
+  AerobicExercise, AnaerobicExercise, DietLog, 
+  DietLogDetail, MenuList, DailyReport, 
+  WeeklyReport, MonthlyReport } = require('./src/index');
 const routes = require('./src/routes/exerciseRoute');
 const routes2 = require('./src/routes/routes');
 const gptRouter = require('./src/routes/gpt/gptRoute');
+const report = require('./src/routes/report');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -16,6 +20,7 @@ app.use(express.json());
 app.use('/', routes);
 app.use('/', routes2);
 app.use('/gpt', gptRouter);
+app.use('/report', report);
 
 
 const initializeApp = async () => {
@@ -146,6 +151,79 @@ await DietLogDetail.bulkCreate([
   },
 ]);
 console.log('DietLogDetail added');
+
+// DailyReport 데이터 추가
+await DailyReport.bulkCreate([
+  {
+    dailyReportId: 1,
+    userId: '1234',
+    totalCalories: 2000,
+    totalTraining: 60,
+    dietFeedback: 'Good',
+    exerciseFeedback: 'Great',
+    date: new Date('2024-07-18')
+  },
+  {
+    dailyReportId: 2,
+    userId: 'test1',
+    totalCalories: 1800,
+    totalTraining: 45,
+    dietFeedback: 'Needs improvement',
+    exerciseFeedback: 'Average',
+    date: new Date('2024-07-18').toISOString().split('T')[0]
+  }
+]);
+console.log('DailyReport added');
+
+// WeeklyReport 데이터 추가
+await WeeklyReport.bulkCreate([
+  {
+    weeklyReportId: 1,
+    userId: '1234',
+    nextExercise: 'Run 5k',
+    nextDiet: 'More vegetables',
+    meanExercise: 60,
+    meanDiet: 2000,
+    weeklyFeedback: 'Keep up the good work',
+    date: new Date('2024-07-18')
+  },
+  {
+    weeklyReportId: 2,
+    userId: 'test1',
+    nextExercise: 'Run 5k',
+    nextDiet: 'More vegetables',
+    meanExercise: 45,
+    meanDiet: 1800,
+    weeklyFeedback: 'You can do better',
+    date: new Date('2024-07-18')
+  }
+]);
+console.log('WeeklyReport added');
+
+// MonthlyReport 데이터 추가
+await MonthlyReport.bulkCreate([
+  {
+    monthlyReportId: 1,
+    userId: '1234',
+    nextExercise: 'Run 5k',
+    nextDiet: 'More vegetables',
+    date: new Date('2024-07-18'),
+    meanTraining: 60,
+    dietFeedback: 'Excellent',
+    exerciseFeedback: 'Outstanding'
+  },
+  {
+    monthlyReportId: 2,
+    userId: 'test1',
+    nextExercise: 'Jog daily',
+    nextDiet: 'Less sugar',
+    date: new Date('2024-07-18'),
+    meanTraining: 45,
+    dietFeedback: 'Fair',
+    exerciseFeedback: 'Satisfactory'
+  }
+]);
+console.log('MonthlyReport added');
 
 console.log('test data uploaded');
 };
