@@ -22,6 +22,18 @@ module.exports = class MenuList extends Sequelize.Model {
         type: DataTypes.DOUBLE,
         allowNull: false,
       },
+      menuCarbo:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
+      menuProtein:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
+      menuFat:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
     }, {
       sequelize,
       timestamps: true,
