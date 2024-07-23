@@ -1,20 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const { User, ExerciseLog, DietLogDetail, DietLog, DailyReport, MenuList, Sequelize } = require('../index');
+const { User, ExerciseLog, DietLogDetail, DietLog, DailyReport, MonthlyReport, MenuList, Sequelize, WeeklyReport } = require('../index');
+const { Op } = Sequelize; // Op를 Sequelize에서 가져오기
 
 router.post('/daily', async (req, res) => {
   const { userId, date } = req.body;
-  const formattedDate = new Date(date).toISOString().split('T')[0];  // 날짜 포맷팅
-
-  console.log("userId: ", userId);
-  console.log("date: ", date);
 
   try {
+    // 입력된 날짜의 시작과 끝을 정의
+    const startDate = new Date(date);
+    if (isNaN(startDate)) {
+      throw new Error('Invalid date format');
+    }
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    if (isNaN(endDate)) {
+      throw new Error('Invalid date format');
+    }
+    endDate.setHours(23, 59, 59, 999);
+
     // 해당 날짜에 이미 DailyReport가 있는지 확인
     const existingReport = await DailyReport.findOne({
       where: {
         userId: userId,
-        date: formattedDate,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
       }
     });
 
@@ -26,31 +37,47 @@ router.post('/daily', async (req, res) => {
 
     // 사용자의 해당 날짜의 다이어트 로그 가져오기
     console.log("생성");
-    const dietLogs = await DietLogDetail.findAll({
-      include: {
-        model: DietLog,
-        as: 'dietLog',  // 관계 정의 시 사용한 별칭
-        where: {
-          userId: userId,
-          dietDate: formattedDate,
+    const dietLogs = await DietLog.findAll({
+      where: {
+        userId: userId,
+        dietDate: {
+          [Op.between]: [startDate, endDate]
         }
-      }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
     });
+
+    console.log("Diet Logs: ", dietLogs);
 
     // 해당 날짜에 섭취한 총 칼로리 계산
     let totalCalories = 0;
-    for (const log of dietLogs) {
-      const menu = await MenuList.findByPk(log.menuId);
-      totalCalories += log.quantity * menu.menuCalorie;
-    }
+    dietLogs.forEach(dietLog => {
+      dietLog.details.forEach(detail => {
+        const calories = detail.quantity * detail.menu.menuCalorie;
+        totalCalories += calories;
+      });
+    });
+
+    console.log("Total Calories: ", totalCalories);
 
     // 사용자의 해당 날짜의 운동 로그 가져오기
     const exerciseLogs = await ExerciseLog.findAll({
       where: {
         userId: userId,
-        exerciseDate: formattedDate,
+        exerciseDate: {
+          [Op.between]: [startDate, endDate]
+        }
       }
     });
+
+    console.log("Exercise Logs: ", exerciseLogs);
 
     // 총 운동 시간 계산
     let totalTraining = 0;
@@ -58,10 +85,12 @@ router.post('/daily', async (req, res) => {
       totalTraining += log.exerciseTime;
     });
 
+    console.log("Total Training: ", totalTraining);
+
     // DailyReport 생성
     const newDailyReport = await DailyReport.create({
       userId,
-      date: formattedDate,
+      date: startDate, // 저장할 때는 시작 날짜만 사용
       totalCalories,
       totalTraining,
       dietFeedback: 'test',  // 임시 피드백
@@ -74,5 +103,193 @@ router.post('/daily', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// 주간 레포트 생성
+router.post('/weekly', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+    // 입력된 날짜를 기준으로 주의 시작(월요일)과 끝(일요일) 설정
+    const inputDate = new Date(date);
+    if (isNaN(inputDate)) {
+      throw new Error('Invalid date format');
+    }
+
+    // 주의 시작(월요일) 계산
+    const startDate = new Date(Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate()));
+    const day = startDate.getUTCDay();
+    const diff = startDate.getUTCDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+    startDate.setUTCDate(diff);
+    startDate.setUTCHours(0, 0, 0, 0);
+
+    // 주의 끝(일요일) 계산
+    const endDate = new Date(startDate);
+    endDate.setUTCDate(startDate.getUTCDate() + 6);
+    endDate.setUTCHours(23, 59, 59, 999);
+
+    console.log("Start Date: ", startDate);
+    console.log("End Date: ", endDate);
+
+    // 해당 날짜에 이미 WeeklyReport가 있는지 확인
+    const existingReport = await WeeklyReport.findOne({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    if (existingReport) {
+      console.log("존재!");
+      // 이미 존재하는 WeeklyReport가 있으면 해당 데이터를 반환
+      existingReport.date = startDate;  // 수정된 부분: 응답에 달의 첫 날을 포함하도록 설정
+      return res.status(200).json(existingReport);
+    }
+
+    // 사용자의 해당 주의 DailyReport 찾기
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    console.log("Daily Reports: ", dailyReports);
+
+    // 일별 총 칼로리를 더해 평균 구함
+    let totalCalories = 0;
+    let totalTraining = 0;
+    dailyReports.forEach(report => {
+      totalCalories += report.totalCalories;
+      totalTraining += report.totalTraining;
+    });
+
+    const meanCalories = (totalCalories / 7).toFixed(2);
+    const meanTraining = (totalTraining / 7).toFixed(2);
+
+    // WeeklyReport 생성
+    const newWeeklyReport = await WeeklyReport.create({
+      userId,
+      date: startDate, // 주의 시작 날짜만 사용
+      nextExercise: '운동하세요',
+      nextDiet: '먹으세요',
+      dietFeedback: '잘하셨네요',
+      exerciseFeedback: '좀 치네요',
+      meanCalories,
+      meanTraining,
+    });
+
+    // 응답에서 주의 첫 날인 월요일 날짜를 포함
+    res.status(201).json({
+      weeklyReportId: newWeeklyReport.weeklyReportId,
+      userId: newWeeklyReport.userId,
+      date: startDate,
+      nextExercise: newWeeklyReport.nextExercise,
+      nextDiet: newWeeklyReport.nextDiet,
+      dietFeedback: newWeeklyReport.dietFeedback,
+      exerciseFeedback: newWeeklyReport.exerciseFeedback,
+      meanCalories: newWeeklyReport.meanCalories,
+      meanTraining: newWeeklyReport.meanTraining,
+    });
+  } catch (error) {
+    console.error('Error retrieving weekly report:', error);
+    res.status(500).json({ message: 'Error retrieving weekly report', error: error.message });
+  }
+});
+
+// 월간 레포트 생성
+router.post('/monthly', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+    // 입력된 날짜를 기준으로 달의 시작과 끝 설정
+    const inputDate = new Date(date);
+    if (isNaN(inputDate)) {
+      throw new Error('Invalid date format');
+    }
+
+    // 달의 시작 계산
+    const startDate = new Date(Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), 1));
+    startDate.setUTCHours(0, 0, 0, 0);
+
+    // 달의 끝 계산
+    const endDate = new Date(Date.UTC(inputDate.getFullYear(), inputDate.getMonth() + 1, 0));
+    endDate.setUTCHours(23, 59, 59, 999);
+
+    console.log("Start Date: ", startDate);
+    console.log("End Date: ", endDate);
+
+    const existingReport = await MonthlyReport.findOne({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    if (existingReport) {
+      console.log("존재!");
+      // 이미 존재하는 MonthlyReport가 있으면 해당 데이터를 반환
+      existingReport.date = startDate;  // 수정된 부분: 응답에 달의 첫 날을 포함하도록 설정
+      return res.status(200).json(existingReport);
+    }
+
+    // 사용자의 해당 달의 DailyReport 찾기
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    console.log("Daily Reports: ", dailyReports);
+
+    // 일별 총 칼로리를 더해 평균 구함
+    let totalCalories = 0;
+    let totalTraining = 0;
+    dailyReports.forEach(report => {
+      totalCalories += report.totalCalories;
+      totalTraining += report.totalTraining;
+    });
+
+    const meanCalories = (totalCalories / dailyReports.length).toFixed(2);
+    const meanTraining = (totalTraining / dailyReports.length).toFixed(2);
+
+    // MonthlyReport 생성
+    const newMonthlyReport = await MonthlyReport.create({
+      userId,
+      date: startDate, // 달의 시작 날짜만 사용
+      nextExercise: '운동하세요',
+      nextDiet: '먹으세요',
+      dietFeedback: '잘하셨네요',
+      exerciseFeedback: '좀 치네요',
+      meanCalories,
+      meanTraining,
+    });
+
+    // 응답에서 달의 첫 날인 1일 날짜를 포함
+    res.status(201).json({
+      monthlyReportId: newMonthlyReport.monthlyReportId,
+      userId: newMonthlyReport.userId,
+      date: startDate,
+      nextExercise: newMonthlyReport.nextExercise,
+      nextDiet: newMonthlyReport.nextDiet,
+      dietFeedback: newMonthlyReport.dietFeedback,
+      exerciseFeedback: newMonthlyReport.exerciseFeedback,
+      meanCalories: newMonthlyReport.meanCalories,
+      meanTraining: newMonthlyReport.meanTraining,
+    });
+  } catch (error) {
+    console.error('Error retrieving monthly report:', error);
+    res.status(500).json({ message: 'Error retrieving monthly report', error: error.message });
+  }
+});
+
 
 module.exports = router;

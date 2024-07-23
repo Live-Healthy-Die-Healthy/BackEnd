@@ -35,6 +35,10 @@ module.exports = class MonthlyReport extends Sequelize.Model {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      meanCalories: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
       dietFeedback: {
         type: DataTypes.STRING,
         allowNull: true,

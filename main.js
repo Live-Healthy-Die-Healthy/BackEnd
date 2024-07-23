@@ -122,13 +122,13 @@ console.log('MenuList added');
 await DietLog.bulkCreate([
   {
     dietLogId: 1,
-    dietDate: new Date('2024-07-18'),
+    dietDate: new Date('2024-07-19'),
     dietType: 'Breakfast',
     userId: '1234'
   },
   {
     dietLogId: 2,
-    dietDate: new Date('2024-07-18'),
+    dietDate: new Date('2024-07-19'),
     dietType: 'Lunch',
     userId: '1234'
   },
@@ -183,8 +183,9 @@ await WeeklyReport.bulkCreate([
     nextExercise: 'Run 5k',
     nextDiet: 'More vegetables',
     meanExercise: 60,
-    meanDiet: 2000,
-    weeklyFeedback: 'Keep up the good work',
+    meanCalories: 2000,
+    dietFeedback: 'Keep up the good work',
+    exerciseFeedback: 'Keep up the good work',
     date: new Date('2024-07-18')
   },
   {
@@ -193,8 +194,9 @@ await WeeklyReport.bulkCreate([
     nextExercise: 'Run 5k',
     nextDiet: 'More vegetables',
     meanExercise: 45,
-    meanDiet: 1800,
-    weeklyFeedback: 'You can do better',
+    meanCalories: 1800,
+    dietFeedback: 'You can do better',
+    exerciseFeedback: 'Keep up the good work',
     date: new Date('2024-07-18')
   }
 ]);
@@ -209,6 +211,7 @@ await MonthlyReport.bulkCreate([
     nextDiet: 'More vegetables',
     date: new Date('2024-07-18'),
     meanTraining: 60,
+    meanCalories: 2000,
     dietFeedback: 'Excellent',
     exerciseFeedback: 'Outstanding'
   },
@@ -219,6 +222,7 @@ await MonthlyReport.bulkCreate([
     nextDiet: 'Less sugar',
     date: new Date('2024-07-18'),
     meanTraining: 45,
+    meanCalories: 2000,
     dietFeedback: 'Fair',
     exerciseFeedback: 'Satisfactory'
   }

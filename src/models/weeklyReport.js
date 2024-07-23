@@ -30,11 +30,15 @@ module.exports = class WeeklyReport extends Sequelize.Model {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      meanDiet: {
+      meanCalories: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      weeklyFeedback: {
+      dietFeedback: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      exerciseFeedback: {
         type: DataTypes.STRING,
         allowNull: true,
       },
