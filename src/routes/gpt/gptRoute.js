@@ -73,77 +73,90 @@ router.get('/analysisStatus/:analysisId', async (req, res) => {
     console.error('Error checking analysis status:', error);
     res.status(500).json({ message: 'Error checking analysis status', error: error.message });
   }
-});
-
-
+}); 
 
 
 
 
 async function performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate) {
-  try {
-    const analysisResult = await getGPTResponse("Analyze this meal image", dietImage);
+  const maxRetries = 3;
+  let retryCount = 0;
 
-    // 예상양이 0인 음식이 있는지 확인
-    const hasZeroQuantity = analysisResult.음식상세.some(food => food.예상양 === 0);
+  while (retryCount < maxRetries) {
+    console.log("retryCount: ", retryCount);
+    try {
+      const analysisResult = await getGPTResponse("Analyze this meal image", dietImage);
 
-    if (hasZeroQuantity) {
+      // 응답 형식 검증
+      if (typeof analysisResult !== 'object' || !Array.isArray(analysisResult.음식상세)) {
+        console.log("Invalid response format. Retrying...");
+        retryCount++;
+        continue;
+      }
+
+      // 예상양이 0인 음식이 있는지 확인
+      const hasZeroQuantity = analysisResult.음식상세.some(food => food.예상양 === 0);
+
+      if (hasZeroQuantity) {
+        await Analysis.create({
+          analysisId,
+          userId,
+          dietImage,
+          result_json: null,
+          status: 'failed'
+        });
+        return { status: 'failed', message: '음식의 양을 정확히 파악할 수 없습니다. 사진을 다시 찍어주세요.' };
+      }
+
+      // DietLog 생성
+      const newDietLog = await DietLog.create({
+        userId,
+        dietDate,
+        dietType,
+        dietImage
+      });
+
+      // DietLogDetail 생성 및 dietDetailLogId 수집
+      const dietDetailLogIds = [];
+      for (const food of analysisResult.음식상세) {
+        let menuItem = await MenuList.findOne({ where: { menuName: food.음식명 } });
+
+        if (!menuItem) {
+          menuItem = await MenuList.create({
+            menuName: food.음식명,
+            menuCalorie: food.영양정보.칼로리 / 100,
+          });
+        }
+
+        const dietLogDetail = await DietLogDetail.create({
+          dietLogId: newDietLog.dietLogId,
+          menuId: menuItem.menuId,
+          quantity: food.예상양
+        });
+        console.log("dietLogDetail.dietDetailLogId : ", dietLogDetail.dietDetailLogId);
+
+        dietDetailLogIds.push(dietLogDetail.dietDetailLogId);
+      }
+      console.log("dietDetailLogIds : ", dietDetailLogIds);
+
       await Analysis.create({
         analysisId,
         userId,
         dietImage,
-        result_json: null,
-        status: 'failed'
+        result_json: analysisResult,
+        status: 'completed',
+        dietDetailLogIds
       });
-      return { status: 'failed', message: '음식의 양을 정확히 파악할 수 없습니다. 사진을 다시 찍어주세요.' };
-    }
 
-    
-    // DietLog 생성
-    const newDietLog = await DietLog.create({
-      userId,
-      dietDate,
-      dietType,
-      dietImage
-    });
+      return { status: 'completed', dietInfo: analysisResult };
 
-    // DietLogDetail 생성 및 dietDetailLogId 수집
-    const dietDetailLogIds = [];
-    for (const food of analysisResult.음식상세) {
-      let menuItem = await MenuList.findOne({ where: { menuName: food.음식명 } });
-
-      if (!menuItem) {
-        menuItem = await MenuList.create({
-          menuName: food.음식명,
-          menuCalorie: food.영양정보.칼로리 / 100,
-        });
+    } catch (error) {
+      console.error('Error during image analysis:', error);
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        throw new Error('Maximum retry attempts reached');
       }
-
-      const dietLogDetail = await DietLogDetail.create({
-        dietLogId: newDietLog.dietLogId,
-        menuId: menuItem.menuId,
-        quantity: food.예상양
-      });
-      console.log("dietLogDetail.dietDetailLogId : ", dietLogDetail.dietDetailLogId);
-
-      dietDetailLogIds.push(dietLogDetail.dietDetailLogId);
     }
-    console.log("dietDetailLogIds : ", dietDetailLogIds);
-
-    await Analysis.create({
-      analysisId,
-      userId,
-      dietImage,
-      result_json: analysisResult,
-      status: 'completed',
-      dietDetailLogIds
-    });
-
-    return { status: 'completed', dietInfo: analysisResult };
-
-  } catch (error) {
-    console.error('Error during image analysis:', error);
-    throw error;
   }
 }
 
@@ -250,7 +263,6 @@ const basePrompt = `
 }
 
 모든 분석은 업로드된 이미지만을 기반으로 하며, 정확한 개인별 권장량을 위해서는 사용자의 성별, 나이, 체중, 활동 수준 등의 추가 정보가 필요함을 명시하세요.
-
 사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
 각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
 `;
@@ -287,6 +299,10 @@ function parsePartialJson(jsonString) {
                 partialObject[JSON.parse(key)] = value.trim();
             }
         });
+
+        if (Object.keys(partialObject).length === 0) {
+          throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+      }
         return partialObject;
     }
 }
@@ -419,9 +435,28 @@ if (imageBase64) {
       enhancedLogging('Parsed GPT Response:', parsedContent);
       return parsedContent;
   } catch (error) {
-      enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
-      return getFallbackResponse(error, allResponses.join(''));
-  }
+    enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
+
+    // JSON 오류 발생 시 재요청 시도
+    if (error.message.includes('JSON') || error.message.includes('유효한 JSON 객체가 아님')) {
+        console.log('JSON 오류 발생, 재요청 시도 중...');
+        try {
+            let retryResponse = await axios.post(apiUrl, payload, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000
+            });
+            const retryContent = retryResponse.data.choices[0].message.content;
+            return mergeAndParseResponses([retryContent]);
+        } catch (retryError) {
+            enhancedLogging('재요청 실패:', retryError.message);
+        }
+    }
+
+    return getFallbackResponse(error, allResponses.join(''));
+}
 }
 
 
