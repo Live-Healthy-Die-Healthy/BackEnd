@@ -251,6 +251,8 @@ const basePrompt = `
 
 모든 분석은 업로드된 이미지만을 기반으로 하며, 정확한 개인별 권장량을 위해서는 사용자의 성별, 나이, 체중, 활동 수준 등의 추가 정보가 필요함을 명시하세요.
 
+다시 한번 강조합니다. 항상 위와같은 JSON 구조를 유지하고 위 양식에서 벗어나 임의로 양식을 조정하지 마라.
+
 사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
 각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
 `;
@@ -287,6 +289,10 @@ function parsePartialJson(jsonString) {
                 partialObject[JSON.parse(key)] = value.trim();
             }
         });
+
+        if (Object.keys(partialObject).length === 0) {
+          throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+      }
         return partialObject;
     }
 }
@@ -419,9 +425,28 @@ if (imageBase64) {
       enhancedLogging('Parsed GPT Response:', parsedContent);
       return parsedContent;
   } catch (error) {
-      enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
-      return getFallbackResponse(error, allResponses.join(''));
-  }
+    enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
+
+    // JSON 오류 발생 시 재요청 시도
+    if (error.message.includes('JSON') || error.message.includes('유효한 JSON 객체가 아님')) {
+        console.log('JSON 오류 발생, 재요청 시도 중...');
+        try {
+            let retryResponse = await axios.post(apiUrl, payload, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000
+            });
+            const retryContent = retryResponse.data.choices[0].message.content;
+            return mergeAndParseResponses([retryContent]);
+        } catch (retryError) {
+            enhancedLogging('재요청 실패:', retryError.message);
+        }
+    }
+
+    return getFallbackResponse(error, allResponses.join(''));
+}
 }
 
 
