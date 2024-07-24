@@ -4,7 +4,6 @@ const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
 const { User, ExerciseLog, DietLogDetail, DietLog, DailyReport, MonthlyReport, MenuList, Sequelize, WeeklyReport } = require('../index');
 const { Op } = Sequelize; // Op를 Sequelize에서 가져오기
-const { v4: uuidv4 } = require('uuid');
 
 const bodyParser = require('body-parser');
 
@@ -44,14 +43,14 @@ function getLastDayOfMonth(date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
-async function performDailyAnalysis(dailyReportId, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
+async function performDailyAnalysis(totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
   const maxRetries = 3;
   let retryCount = 0;
 
   while (retryCount < maxRetries) {
     console.log("retryCount: ", retryCount);
     try {
-      const analysisResult = await getGPTResponse(dailyReportId, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight);
+      const analysisResult = await getGPTResponse(totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight);
 
       // 응답 형식 검증
       if (typeof analysisResult !== 'object' || !analysisResult['식단 피드백'] || !analysisResult['운동 피드백']) {
@@ -60,20 +59,22 @@ async function performDailyAnalysis(dailyReportId, totalCalories, totalTraining,
         continue;
       }
 
-      // DailyReport 업데이트
-      const updatedDailyReport = await DailyReport.update(
+      // DailyReport 생성
+      const newDailyReport = await DailyReport.create(
         {
+          totalCalories,
+          totalTraining,
+          totalCarbo,
+          totalProtein,
+          totalFat,
           dietFeedback: analysisResult['식단 피드백'],
           exerciseFeedback: analysisResult['운동 피드백']
-        },
-        {
-          where: { dailyReportId } // dailyReportId를 기준으로 업데이트
         }
       );
 
-      console.log("Feedback updated:", updatedDailyReport);
+      console.log("Feedback updated:", newDailyReport);
 
-      return { status: 'completed', analysisResult };
+      return { status: 'completed', newDailyReport };
 
     } catch (error) {
       console.error('Error during analysis:', error);
@@ -208,6 +209,10 @@ router.post('/newDaily', async (req, res) => {
       });
     });
 
+    totalCarbo = totalCarbo * detail.quantity;
+    totalProtein = totalProtein * detail.quantity;
+    totalFat = totalFat * detail.quantity;
+
     console.log("Total Calories: ", totalCalories);
     console.log("Total Carbo: ", totalCarbo);
     console.log("Total Protein: ", totalProtein);
@@ -233,31 +238,11 @@ router.post('/newDaily', async (req, res) => {
 
     console.log("Total Training: ", totalTraining);
 
-    // DailyReport 생성
-    const newDailyReport = await DailyReport.create({
-      dailyReportId,
-      userId,
-      date: startDate, // 저장할 때는 시작 날짜만 사용
-      totalCalories,
-      totalCarbo,
-      totalProtein,
-      totalFat,
-      totalTraining,
-    });
-
-    performDailyAnalysis(dailyReportId,totalCalories, totalTraining, totalCarbo, 
-      totalProtein, totalFat
+    const response = await performDailyAnalysis(totalCalories, totalTraining, totalCarbo, 
+      totalProtein, totalFat, userGender, userAge, userWeight
     ); 
 
-    res.status(200).json({
-      totalCalories: totalCalories,
-      totalTraining: totalTraining,
-      dietFeedback: newDailyReport.dietFeedback,
-      exerciseFeedback: newDailyReport.exerciseFeedback,
-      totalCarbo: totalCarbo,
-      totalProtein: totalProtein,
-      totalFat: totalFat
-    });
+    res.status(200).json({ response });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });

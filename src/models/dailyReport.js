@@ -8,7 +8,6 @@ module.exports = class DailyReport extends Sequelize.Model {
       dailyReportId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
       },
       userId: {
         type: DataTypes.STRING,
