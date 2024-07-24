@@ -12,7 +12,7 @@ const gptRouter = require('./src/routes/gpt/gptRoute');
 const report = require('./src/routes/report');
 const gptReport = require('./src/routes/gpt/gptReport');
 const menuData = require('./menuData');
-
+const loadExerciseData = require('./exerciseData');
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -72,44 +72,8 @@ const initializeApp = async () => {
       userImage: null // 필요한 경우 이미지를 추가할 수 있습니다.
     }
   ]);
-  await ExerciseList.bulkCreate([
-    {
-      exerciseId: 1,
-      exerciseName: 'Push Up',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'chest',  // 주요 부위 변경
-    },
-    {
-      exerciseId: 2,
-      exerciseName: 'Jogging',
-      exerciseType: 'AerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'AerobicExercise',  // 운동 부위 변경
-    },
-    {
-      exerciseId: 3,
-      exerciseName: 'Squats',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'leg',  // 주요 부위 변경
-    },
-    {
-      exerciseId: 4,
-      exerciseName: 'Cycling',
-      exerciseType: 'AerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'AerobicExercise',  // 운동 부위
-    },
-    {
-      exerciseId: 5,
-      exerciseName: 'Pull Up',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'back',  // 주요 부위
-    }
-  ]);
-  console.log('ExerciseList added');
+
+  await loadExerciseData();
 
 // MenuList 데이터 추가
 await menuData();

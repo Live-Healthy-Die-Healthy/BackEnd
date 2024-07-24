@@ -19,7 +19,7 @@ module.exports = class ExerciseList extends Sequelize.Model {
             allowNull: false,
           },
           exerciseImage: {
-            type: DataTypes.BLOB,
+            type: DataTypes.BLOB('long'),
           },
           exercisePart: {
             type: DataTypes.STRING,

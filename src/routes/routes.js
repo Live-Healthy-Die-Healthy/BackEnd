@@ -399,10 +399,10 @@ router.put('/profile', async (req, res) => {
       user.userBirth = userBirth;
       user.userHeight = userHeight;
       user.userWeight = userWeight;
-      userMuscleMass= user.userMuscleMass;
-      userBmi= user.userBmi;
-      userBodyFatPercentage= user.userBodyFatPercentage;
-      userBmr= user.userBmr;
+      user.userMuscleMass=userMuscleMass;
+      user.userBmi= userBmi;
+      user.userBodyFatPercentage= userBodyFatPercentage;
+      user.userBmr= userBmr;
       user.userImage = imageBuffer;
 
       await user.save();
