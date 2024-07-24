@@ -44,7 +44,7 @@ function getLastDayOfMonth(date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
-async function performDailyAnalysis(dailyReportId, userId, date, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
+async function performDailyAnalysis(dailyReportId, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -97,6 +97,7 @@ router.post('/daily', async (req, res) => {
           [Op.in]: ['breakfast', 'lunch', 'dinner', 'snack']
         }
       }
+    
     });
 
     const dietTypes = dietLogs.map(log => log.dietType);
@@ -105,7 +106,23 @@ router.post('/daily', async (req, res) => {
 
     const isFilled = requiredDietTypes.every(type => dietTypes.includes(type));
 
-    res.status(200).json({ isFilled });
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const dailyReport = await DailyReport.findOne({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const isValid = dailyReport ? true : false;
+
+    res.status(200).json({ isFilled, isValid, dailyReport });
   } catch (error) {
     console.error('Error checking diet logs:', error);
     res.status(500).json({ message: 'Error checking diet logs', error: error.message });
@@ -144,7 +161,7 @@ router.post('/newDaily', async (req, res) => {
     if (existingReport) {
       console.log("존재!");
       // 이미 존재하는 DailyReport가 있으면 해당 데이터를 반환
-      return res.status(201).json({
+      return res.status(200).json({
         totalCalories: existingReport.totalCalories,
         totalTraining: existingReport.totalTraining,
         dietFeedback: existingReport.dietFeedback,
@@ -232,7 +249,7 @@ router.post('/newDaily', async (req, res) => {
       totalProtein, totalFat
     ); 
 
-    res.status(201).json({
+    res.status(200).json({
       totalCalories: totalCalories,
       totalTraining: totalTraining,
       dietFeedback: newDailyReport.dietFeedback,
@@ -271,7 +288,19 @@ router.post('/weekly', async (req, res) => {
     const requiredDietTypes = ['breackfast', 'lunch', 'dinner', 'snack'];
     const isFilled = requiredDietTypes.every(type => dietTypes.includes(type));
 
-    res.status(200).json({ isFilled });
+    // WeeklyReport가 존재하는지 확인합니다.
+    const weeklyReport = await WeeklyReport.findOne({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const isValid = weeklyReport ? true : false;
+
+    res.status(200).json({ isFilled, isValid, weeklyReport });
   } catch (error) {
     console.error('Error checking weekly diet logs:', error);
     res.status(500).json({ message: 'Error checking weekly diet logs', error: error.message });
@@ -357,7 +386,7 @@ router.post('/newWeekly', async (req, res) => {
     });
 
     // 응답에서 주의 첫 날인 월요일 날짜를 포함
-    res.status(201).json({
+    res.status(200).json({
       weeklyReportId: newWeeklyReport.weeklyReportId,
       userId: newWeeklyReport.userId,
       date: startDate,
@@ -398,7 +427,19 @@ router.post('/monthly', async (req, res) => {
     const requiredDietTypes = ['breackfast', 'lunch', 'dinner', 'snack'];
     const isFilled = requiredDietTypes.every(type => dietTypes.includes(type));
 
-    res.status(200).json({ isFilled });
+    // MonthlyReport가 존재하는지 확인합니다.
+    const monthlyReport = await MonthlyReport.findOne({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const isValid = monthlyReport ? true : false;
+
+    res.status(200).json({ isFilled, isValid, monthlyReport });
   } catch (error) {
     console.error('Error checking monthly diet logs:', error);
     res.status(500).json({ message: 'Error checking monthly diet logs', error: error.message });
@@ -479,7 +520,7 @@ router.post('/newMonthly', async (req, res) => {
     });
 
     // 응답에서 달의 첫 날인 1일 날짜를 포함
-    res.status(201).json({
+    res.status(200).json({
       monthlyReportId: newMonthlyReport.monthlyReportId,
       userId: newMonthlyReport.userId,
       date: startDate,
@@ -496,7 +537,7 @@ router.post('/newMonthly', async (req, res) => {
   }
 });
 
-async function getGPTResponse(dailyReportId, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
+async function getGPTResponse(totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
       throw new Error('OPENAI_API_KEY is not set');
@@ -522,7 +563,6 @@ userWeight의 단위는 (kg) 이다.
 
   const reportData = `
 {
-    "dailyReportId": "${dailyReportIdd}",
     "totalCalories": ${totalCalories},
     "totalTraining": ${totalTraining},
     "totalProtein": ${totalProtein},
