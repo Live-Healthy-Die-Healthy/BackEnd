@@ -192,7 +192,7 @@ await MenuList.bulkCreate([
         menuProtein: 0.173,
         menuFat: 0.28,
       }
-  ]);
+  ], { logging: false });
   console.log('MenuList added');
 };
 

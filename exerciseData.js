@@ -35,7 +35,7 @@ const loadExerciseData = async () => {
         exerciseImage: fs.readFileSync(path.join(__dirname, 'images', 'Pull Up.jpg')),
         exercisePart: 'back',
       }
-    ]);
+    ], { logging: false });
     console.log('ExerciseList added');
   } catch (error) {
     console.error('Error adding ExerciseList:', error);
