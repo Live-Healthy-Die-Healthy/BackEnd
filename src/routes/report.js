@@ -234,6 +234,8 @@ router.post('/newDaily', async (req, res) => {
 
     console.log("Total Training: ", totalTraining);
 
+    const { userGender: userGender, userAge: userAge, userWeight: userWeight } = User;
+
     const response = await performDailyAnalysis(totalCalories, totalTraining, totalCarbo, 
       totalProtein, totalFat, userGender, userAge, userWeight
     ); 
