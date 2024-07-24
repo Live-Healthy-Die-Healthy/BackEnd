@@ -15,7 +15,7 @@ module.exports = class MenuList extends Sequelize.Model {
         allowNull: false,
       },
       menuImage: {
-        type: DataTypes.BLOB,
+        type: DataTypes.BLOB('long'),
         allowNull: true,
       },
       menuCalorie: {
