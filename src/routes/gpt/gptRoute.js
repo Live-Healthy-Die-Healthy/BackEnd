@@ -11,16 +11,13 @@ const bodyParser = require('body-parser');
 
 // 라우터 사용 시에도 동일하게 설정
 router.use(express.urlencoded({    
-  limit:"50mb",
+  limit:"200kb",
   extended: true, // true로 변경
 }));
 
 router.use(express.json({   
-  limit : "50mb"
+  limit : "200kb"
 }));
-  
-
-
 
 
 // 이미지 분석 및 식단 기록 추가 라우트
@@ -125,10 +122,6 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
           menuItem = await MenuList.create({
             menuName: food.음식명,
             menuCalorie: food.영양정보.칼로리 / 100,
-            menuImage: Buffer.from([]),
-            menuCarbo: food.영양정보.탄수화물 / 100,
-            menuProtein: food.영양정보.단백질 / 100,
-            menuFat: food.영양정보.지방 / 100,
           });
         }
 
@@ -271,6 +264,15 @@ const basePrompt = `
 각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
 `;
 
+
+function encodeImageToBase64(filePath) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, (err, data) => {
+            if (err) reject(err);
+            else resolve(data.toString('base64'));
+        });
+    });
+}
 
 function sanitizeJsonString(jsonString) {
     jsonString = jsonString.trim();
@@ -453,6 +455,16 @@ if (imageBase64) {
     return getFallbackResponse(error, allResponses.join(''));
 }
 }
+
+
+function moveImageFile(imagePath) {
+    const publicPath = path.join(__dirname, 'public', 'uploads', path.basename(imagePath));
+    fs.renameSync(imagePath, publicPath);
+    return `/uploads/${path.basename(imagePath)}`;
+}
+
+
+
 
 
 module.exports = router;

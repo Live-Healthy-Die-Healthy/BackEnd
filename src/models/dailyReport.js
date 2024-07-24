@@ -19,8 +19,23 @@ module.exports = class DailyReport extends Sequelize.Model {
         },
       },
       totalCalories: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         allowNull: false,
+      },
+      totalCarbo: {
+        type: DataTypes.DOUBLE,
+        allowNUull: true,
+        defaultValue: 0
+      },
+      totalProtein: {
+        type: DataTypes.DOUBLE,
+        allowNUull: true,
+        defaultValue: 0
+      },
+      totalFat: {
+        type: DataTypes.DOUBLE,
+        allowNUull: true,
+        defaultValue: 0
       },
       totalTraining: {
         type: DataTypes.INTEGER,
@@ -29,10 +44,12 @@ module.exports = class DailyReport extends Sequelize.Model {
       dietFeedback: {
         type: DataTypes.STRING,
         allowNull: true,
+        defaultValue: "NULL"
       },
       exerciseFeedback: {
         type: DataTypes.STRING,
         allowNull: true,
+        defaultValue: "NULL"
       },
       date: {
         type: DataTypes.DATE,
