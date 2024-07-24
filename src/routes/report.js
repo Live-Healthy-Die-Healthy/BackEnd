@@ -241,13 +241,13 @@ router.post('/newDaily', async (req, res) => {
     ); 
 
     res.status(200).json({ 
-        totalCalories: response.totalCalories,
-        totalTraining: response.totalTraining,
-        dietFeedback: response.dietFeedback,
-        exerciseFeedback: response.exerciseFeedback,
-        totalCarbo: response.totalCarbo,
-        totalProtein: response.totalProtein,
-        totalFat: response.totalFat
+      totalCalories: response.newDailyReport.totalCalories,
+      totalTraining: response.newDailyReport.totalTraining,
+      dietFeedback: response.newDailyReport.dietFeedback,
+      exerciseFeedback: response.newDailyReport.exerciseFeedback,
+      totalCarbo: response.newDailyReport.totalCarbo,
+      totalProtein: response.newDailyReport.totalProtein,
+      totalFat: response.newDailyReport.totalFat
     });
   } catch (error) {
     console.error(error);
@@ -574,7 +574,6 @@ userWeight의 단위는 (kg) 이다.
         { role: "user", content: message }
       ],
       max_tokens: 1000,
-      response_format: "json"
   };
 
   let allResponses = [];
@@ -676,6 +675,14 @@ function mergeAndParseResponses(responses) {
       enhancedLogging("JSON 파싱 실패, 부분 파싱 시도", error);
       return parsePartialJson(completeJson);
   }
+}
+
+function getFallbackResponse(error, rawResponse) {
+  return {
+      error: "응답 파싱 중 오류가 발생했습니다.",
+      message: error.message,
+      rawResponse: rawResponse
+  };
 }
 
 
