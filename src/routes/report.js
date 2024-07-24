@@ -649,4 +649,34 @@ userWeight의 단위는 (kg) 이다.
     return getFallbackResponse(error, allResponses.join(''));
   }
 }
+
+function enhancedLogging(message, data) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+  if (data) {
+      console.log(JSON.stringify(data, null, 2));
+  }
+}
+
+function isResponseComplete(response) {
+  try {
+      JSON.parse(response);
+      return true;
+  } catch (error) {
+      return false;
+  }
+}
+
+function mergeAndParseResponses(responses) {
+  let mergedResponse = responses.join('');
+  mergedResponse = sanitizeJsonString(mergedResponse);
+  let completeJson = findLastCompleteObject(mergedResponse);
+  try {
+      return JSON.parse(completeJson);
+  } catch (error) {
+      enhancedLogging("JSON 파싱 실패, 부분 파싱 시도", error);
+      return parsePartialJson(completeJson);
+  }
+}
+
+
 module.exports = router;
