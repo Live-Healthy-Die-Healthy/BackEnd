@@ -242,7 +242,15 @@ router.post('/newDaily', async (req, res) => {
       totalProtein, totalFat, userGender, userAge, userWeight
     ); 
 
-    res.status(200).json({ response });
+    res.status(200).json({ 
+        totalCalories: response.totalCalories,
+        totalTraining: response.totalTraining,
+        dietFeedback: response.dietFeedback,
+        exerciseFeedback: response.exerciseFeedback,
+        totalCarbo: response.totalCarbo,
+        totalProtein: response.totalProtein,
+        totalFat: response.totalFat
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
