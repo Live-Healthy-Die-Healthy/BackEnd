@@ -134,7 +134,6 @@ router.post('/daily', async (req, res) => {
 router.post('/newDaily', async (req, res) => {
   const { userId, date } = req.body;
 
-  const dailyReportId = uuidv4();
 
   try {
     // 입력된 날짜의 시작과 끝을 정의
@@ -200,18 +199,18 @@ router.post('/newDaily', async (req, res) => {
     let totalProtein = 0;
     let totalFat = 0;
     dietLogs.forEach(dietLog => {
-      dietLog.details.forEach(detail => {
-        const calories = detail.quantity * detail.menu.menuCalorie;
+      dietLog.details.forEach(details => {
+        const calories = details.quantity * details.menu.menuCalorie;
         totalCalories += calories;
-        totalCarbo += detail.menu.menuCarbo;
-        totalProtein += detail.menu.menuProtein;
-        totalFat += detail.menu.menuFat;
+        totalCarbo += details.menu.menuCarbo;
+        totalProtein += details.menu.menuProtein;
+        totalFat += details.menu.menuFat;
       });
     });
 
-    totalCarbo = totalCarbo * detail.quantity;
-    totalProtein = totalProtein * detail.quantity;
-    totalFat = totalFat * detail.quantity;
+    totalCarbo = totalCarbo * details.quantity;
+    totalProtein = totalProtein * details.quantity;
+    totalFat = totalFat * details.quantity;
 
     console.log("Total Calories: ", totalCalories);
     console.log("Total Carbo: ", totalCarbo);
