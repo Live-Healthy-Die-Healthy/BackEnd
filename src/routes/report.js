@@ -202,15 +202,12 @@ router.post('/newDaily', async (req, res) => {
       dietLog.details.forEach(details => {
         const calories = details.quantity * details.menu.menuCalorie;
         totalCalories += calories;
-        totalCarbo += details.menu.menuCarbo;
-        totalProtein += details.menu.menuProtein;
-        totalFat += details.menu.menuFat;
+        totalCarbo += details.menu.menuCarbo * details.quantity;
+        totalProtein += details.menu.menuProtein * details.quantity;
+        totalFat += details.menu.menuFat * details.quantity;
       });
     });
 
-    totalCarbo = totalCarbo * details.quantity;
-    totalProtein = totalProtein * details.quantity;
-    totalFat = totalFat * details.quantity;
 
     console.log("Total Calories: ", totalCalories);
     console.log("Total Carbo: ", totalCarbo);
