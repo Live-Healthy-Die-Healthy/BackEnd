@@ -43,7 +43,7 @@ function getLastDayOfMonth(date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
-async function performDailyAnalysis(totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
+async function performDailyAnalysis(userId, date, totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight) {
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -52,6 +52,7 @@ async function performDailyAnalysis(totalCalories, totalTraining, totalProtein, 
     try {
       const analysisResult = await getGPTResponse(totalCalories, totalTraining, totalProtein, totalCarbo, totalFat, userGender, userAge, userWeight);
 
+      
       // 응답 형식 검증
       if (typeof analysisResult !== 'object' || !analysisResult['식단 피드백'] || !analysisResult['운동 피드백']) {
         console.log("Invalid response format. Retrying...");
@@ -62,6 +63,8 @@ async function performDailyAnalysis(totalCalories, totalTraining, totalProtein, 
       // DailyReport 생성
       const newDailyReport = await DailyReport.create(
         {
+          userId,
+          date,
           totalCalories,
           totalTraining,
           totalCarbo,
@@ -236,18 +239,18 @@ router.post('/newDaily', async (req, res) => {
 
     const { userGender: userGender, userAge: userAge, userWeight: userWeight } = User;
 
-    const response = await performDailyAnalysis(totalCalories, totalTraining, totalCarbo, 
+    const response = await performDailyAnalysis(userId, date, totalCalories, totalTraining, totalCarbo, 
       totalProtein, totalFat, userGender, userAge, userWeight
     ); 
 
     res.status(200).json({ 
-      totalCalories: response.newDailyReport.totalCalories,
-      totalTraining: response.newDailyReport.totalTraining,
-      dietFeedback: response.newDailyReport.dietFeedback,
-      exerciseFeedback: response.newDailyReport.exerciseFeedback,
-      totalCarbo: response.newDailyReport.totalCarbo,
-      totalProtein: response.newDailyReport.totalProtein,
-      totalFat: response.newDailyReport.totalFat
+        totalCalories: response.totalCalories,
+        totalTraining: response.totalTraining,
+        dietFeedback: response.dietFeedback,
+        exerciseFeedback: response.exerciseFeedback,
+        totalCarbo: response.totalCarbo,
+        totalProtein: response.totalProtein,
+        totalFat: response.totalFat
     });
   } catch (error) {
     console.error(error);
@@ -685,5 +688,34 @@ function getFallbackResponse(error, rawResponse) {
   };
 }
 
+function sanitizeJsonString(jsonString) {
+  jsonString = jsonString.trim();
+  jsonString = jsonString.replace(/,\s*([\]}])/g, '$1');
+  const openBraces = (jsonString.match(/{/g) || []).length;
+  const closeBraces = (jsonString.match(/}/g) || []).length;
+  jsonString += '}}'.repeat(openBraces - closeBraces);
+  return jsonString;
+}
+
+function parsePartialJson(jsonString) {
+  try {
+      return JSON.parse(jsonString);
+  } catch (error) {
+      console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
+      const partialObject = {};
+      jsonString.replace(/("[^"]+"):([^,}\]]+)/g, (match, key, value) => {
+          try {
+              partialObject[JSON.parse(key)] = JSON.parse(value);
+          } catch (e) {
+              partialObject[JSON.parse(key)] = value.trim();
+          }
+      });
+
+      if (Object.keys(partialObject).length === 0) {
+        throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+    }
+      return partialObject;
+  }
+}
 
 module.exports = router;
