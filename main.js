@@ -119,11 +119,11 @@ await DailyReport.bulkCreate([
     totalTraining: 60,
     dietFeedback: 'Good',
     exerciseFeedback: 'Great',
-    date: new Date('2024-07-18')
+    date: new Date('2024-07-01').toISOString().split('T')[0]
   },
   {
     dailyReportId: 2,
-    userId: 'test1',
+    userId: '1234',
     totalCalories: 1800,
     totalTraining: 45,
     dietFeedback: 'Needs improvement',
@@ -167,7 +167,7 @@ await MonthlyReport.bulkCreate([
     userId: '1234',
     nextExercise: 'Run 5k',
     nextDiet: 'More vegetables',
-    date: new Date('2024-07-18'),
+    date: new Date('2024-01-18'),
     meanTraining: 60,
     meanCalories: 2000,
     dietFeedback: 'Excellent',
@@ -175,7 +175,7 @@ await MonthlyReport.bulkCreate([
   },
   {
     monthlyReportId: 2,
-    userId: 'test1',
+    userId: '1234',
     nextExercise: 'Jog daily',
     nextDiet: 'Less sugar',
     date: new Date('2024-07-18'),

@@ -1,27 +1,44 @@
 const express = require('express');
-const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User } = require('../index');
+const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, exerciseScrap } = require('../index');
 
 const router = express.Router();
 
-// 모든 ExerciseList 정보만 가져오기
-router.get('/exerciseList', async (req, res) => {
+// 모든 ExerciseList 정보 가져오기 (POST 요청으로 변경)
+router.post('/exerciseList', async (req, res) => {
   try {
-    const { name } = req.query;  // 쿼리 파라미터에서 이름을 가져옵니다.
-    const whereClause = name ? { exerciseName: { [Sequelize.Op.like]: `%${name}%` } } : {}; // 이름으로 검색할 조건
+    const { userId } = req.body;
+    console.log("userId : ", userId);
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    // 해당 유저가 스크랩한 운동 목록 조회
+    const userScraps = await exerciseScrap.findAll({
+      where: { userId },
+      attributes: ['exerciseId']
+    });
+
+    const scrapIds = userScraps.map(scrap => scrap.exerciseId);
+
+    console.log("scrapIds : ", scrapIds);
 
     const exercises = await ExerciseList.findAll({
       attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
-      where: whereClause,  // 검색 조건을 여기에 추가합니다.
     });
 
     const exercisesWithBase64Images = exercises.map(exercise => {
       return {
         ...exercise.dataValues,
-        exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null
+        exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null,
       };
     });
+    const exercise = {
+      exercisesWithBase64Images,
+      scrapIds
+    }
 
-    res.json(exercisesWithBase64Images);
+    res.json(exercise);
   } catch (error) {
     console.error('Error fetching exercises:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -139,6 +156,26 @@ router.post('/addExerciseLog', async (req, res) => {
         errors: error.errors ? error.errors.map(e => e.message) : []
       }
     });
+  }
+});
+
+router.post('/exerciseScrap', async (req, res) => {
+  const { userId, exerciseId } = req.body;
+
+  if (!userId || !exerciseId) {
+    return res.status(400).json({ error: 'userId and exerciseId are required' });
+  }
+
+  try {
+    const newUserExercise = await exerciseScrap.create({
+      userId,
+      exerciseId
+    });
+
+    res.status(201).json(newUserExercise);
+  } catch (error) {
+    console.error('Error adding UserExercise:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
