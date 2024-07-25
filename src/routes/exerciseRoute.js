@@ -1,32 +1,58 @@
 const express = require('express');
-const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User } = require('../index');
+const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, exerciseScrap } = require('../index');
 
 const router = express.Router();
 
-// 모든 ExerciseList 정보만 가져오기
-router.get('/exerciseList', async (req, res) => {
-  try {
-    const { name } = req.query;  // 쿼리 파라미터에서 이름을 가져옵니다.
-    const whereClause = name ? { exerciseName: { [Sequelize.Op.like]: `%${name}%` } } : {}; // 이름으로 검색할 조건
-
-    const exercises = await ExerciseList.findAll({
-      attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
-      where: whereClause,  // 검색 조건을 여기에 추가합니다.
-    });
-
-    const exercisesWithBase64Images = exercises.map(exercise => {
-      return {
-        ...exercise.dataValues,
-        exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null
+// 모든 ExerciseList 정보 가져오기 (POST 요청으로 변경)
+router.post('/exerciseList', async (req, res) => {
+    try {
+      const { userId, name } = req.body;  // 요청 본문에서 userId와 이름을 가져옵니다.
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+  
+      // 해당 유저가 스크랩한 운동 목록 조회
+      const userScraps = await exerciseScrap.findAll({
+        where: { userId },
+        attributes: ['exerciseId']
+      });
+  
+      const scrapIds = userScraps.map(scrap => scrap.exerciseId);
+  
+      if (scrapIds.length === 0) {
+        return res.json([]); // 스크랩된 운동이 없으면 빈 배열 반환
+      }
+  
+      // 스크랩된 운동 아이디에 대한 조건 설정
+      const whereClause = {
+        exerciseId: { [Sequelize.Op.in]: scrapIds } // scrapIds 배열에 포함된 아이디들만 조회
       };
-    });
-
-    res.json(exercisesWithBase64Images);
-  } catch (error) {
-    console.error('Error fetching exercises:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+  
+      if (name) {
+        whereClause.exerciseName = { [Sequelize.Op.like]: `%${name}%` }; // 이름으로 검색할 조건 추가
+      }
+  
+      // 스크랩된 운동 목록 조회
+      const exercises = await ExerciseList.findAll({
+        attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
+        where: whereClause,
+      });
+  
+      // 이미지 인코딩
+      const exercisesWithBase64Images = exercises.map(exercise => {
+        return {
+          ...exercise.dataValues,
+          exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null
+        };
+      });
+  
+      res.json(exercisesWithBase64Images);
+    } catch (error) {
+      console.error('Error fetching exercises:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 // 특정 ExerciseList의 상세 정보 가져오기
 router.get('/exerciseList/:id', async (req, res) => {
@@ -139,6 +165,26 @@ router.post('/addExerciseLog', async (req, res) => {
         errors: error.errors ? error.errors.map(e => e.message) : []
       }
     });
+  }
+});
+
+router.post('/exerciseScrap', async (req, res) => {
+  const { userId, exerciseId } = req.body;
+
+  if (!userId || !exerciseId) {
+    return res.status(400).json({ error: 'userId and exerciseId are required' });
+  }
+
+  try {
+    const newUserExercise = await exerciseScrap.create({
+      userId,
+      exerciseId
+    });
+
+    res.status(201).json(newUserExercise);
+  } catch (error) {
+    console.error('Error adding UserExercise:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
