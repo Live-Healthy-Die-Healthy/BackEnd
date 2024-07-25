@@ -47,7 +47,23 @@ module.exports = class User extends Sequelize.Model {
       userImage: {
         type: DataTypes.BLOB('medium'),
         allowNull: true,
+      }, 
+      userMuscleMass: { // 골격근량
+        type: DataTypes.FLOAT,
+        allowNull: true,
       },
+      userBmi: { // BMI
+        type: DataTypes.FLOAT,
+        allowNull: true, 
+      },
+      userBodyFatPercentage: { // 체지방률
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      userBmr: { // 기초대사량
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      }
     }, {
       sequelize,
       timestamps: false,

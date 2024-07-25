@@ -44,7 +44,7 @@ router.post('/checkUser', async (req, res) => {
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
 
     const connectedAt = new Date();
-    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender, userImage } = req.body;
+    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender,  userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body;
     const username = userNickname;
     console.log("userImage: ", userImage);
 
@@ -66,6 +66,10 @@ router.post('/checkUser', async (req, res) => {
         userHeight,
         userWeight,
         userGender,
+        userMuscleMass,
+        userBmi,
+        userBodyFatPercentage,
+        userBmr,
         userImage : imageBuffer,
         connectedAt
       });
@@ -360,6 +364,10 @@ router.post('/profile', async (req, res) => {
       userHeight: user.userHeight,
       userWeight: user.userWeight,
       userGender: user.userGender,
+      userMuscleMass: user.userMuscleMass,
+      userBmi: user.userBmi,
+      userBodyFatPercentage: user.userBodyFatPercentage,
+      userBmr: user.userBmr,
       userImage: user.userImage ? user.userImage.toString('base64') : null, // 디코딩된 이미지 포함
     };
 
@@ -373,7 +381,7 @@ router.post('/profile', async (req, res) => {
 //프로필 수정 - 사용자 정보 수정
 
 router.put('/profile', async (req, res) => {
-  const { userId, username, userBirth, userHeight, userWeight, userImage } = req.body;
+  const { userId, username, userBirth, userHeight, userWeight, userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body;
 
   try {
       const user = await User.findOne({ where: { userId } });
@@ -391,6 +399,10 @@ router.put('/profile', async (req, res) => {
       user.userBirth = userBirth;
       user.userHeight = userHeight;
       user.userWeight = userWeight;
+      user.userMuscleMass=userMuscleMass;
+      user.userBmi= userBmi;
+      user.userBodyFatPercentage= userBodyFatPercentage;
+      user.userBmr= userBmr;
       user.userImage = imageBuffer;
 
       await user.save();

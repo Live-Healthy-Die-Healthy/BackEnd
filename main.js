@@ -11,14 +11,16 @@ const routes2 = require('./src/routes/routes');
 const gptRouter = require('./src/routes/gpt/gptRoute');
 const report = require('./src/routes/report');
 const gptReport = require('./src/routes/gpt/gptReport');
-
+const menuData = require('./menuData');
+const loadExerciseData = require('./exerciseData');
 const app = express();
 const port = process.env.PORT || 4000;
 
+app.use(cors({
+  origin: 'https://live-healthy-die-healthy.github.io', // 허용할 출처
+}));
 
 app.use(express.json());
-app.options('*', cors());
-app.use(cors());
 
 app.use('/', routes);
 app.use('/', routes2);
@@ -51,6 +53,10 @@ const initializeApp = async () => {
       userHeight: 180,
       userWeight: 75,
       userGender: 'Male',
+      userMuscleMass: 30.5,
+      userBmi: 23.6,
+      userBodyFatPercentage: 15.1,
+      userBmr: 1700,
       connectedAt: new Date()
     },
     { 
@@ -66,67 +72,11 @@ const initializeApp = async () => {
       userImage: null // 필요한 경우 이미지를 추가할 수 있습니다.
     }
   ]);
-  await ExerciseList.bulkCreate([
-    {
-      exerciseId: 1,
-      exerciseName: 'Push Up',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'chest',  // 주요 부위 변경
-    },
-    {
-      exerciseId: 2,
-      exerciseName: 'Jogging',
-      exerciseType: 'AerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'AerobicExercise',  // 운동 부위 변경
-    },
-    {
-      exerciseId: 3,
-      exerciseName: 'Squats',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'leg',  // 주요 부위 변경
-    },
-    {
-      exerciseId: 4,
-      exerciseName: 'Cycling',
-      exerciseType: 'AerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'AerobicExercise',  // 운동 부위
-    },
-    {
-      exerciseId: 5,
-      exerciseName: 'Pull Up',
-      exerciseType: 'AnaerobicExercise',
-      exerciseImage: Buffer.from([]),  // 빈 이미지
-      exercisePart: 'back',  // 주요 부위
-    }
-  ]);
-  console.log('ExerciseList added');
+
+  await loadExerciseData();
 
 // MenuList 데이터 추가
-await MenuList.bulkCreate([
-  {
-    menuId: 1,
-    menuName: 'Salad',
-    menuCalorie: 0.16,
-    menuImage: Buffer.from([]),
-    menuCarbo: 0.1,
-    menuProtein: 0.2,
-    menuFat: 0.3,
-  },
-  {
-    menuId: 2,
-    menuName: 'Chicken Breast',
-    menuCalorie: 2.8,
-    menuImage: Buffer.from([]),
-    menuCarbo: 0.1,
-    menuProtein: 0.2,
-    menuFat: 0.3,
-  },
-]);
-console.log('MenuList added');
+await menuData();
 
 // DietLog 데이터 추가 (7월 18일로 수정)
 await DietLog.bulkCreate([

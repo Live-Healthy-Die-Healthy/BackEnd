@@ -14,7 +14,14 @@ router.get('/exerciseList', async (req, res) => {
       where: whereClause,  // 검색 조건을 여기에 추가합니다.
     });
 
-    res.json(exercises);
+    const exercisesWithBase64Images = exercises.map(exercise => {
+      return {
+        ...exercise.dataValues,
+        exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null
+      };
+    });
+
+    res.json(exercisesWithBase64Images);
   } catch (error) {
     console.error('Error fetching exercises:', error);
     res.status(500).json({ error: 'Internal Server Error' });
