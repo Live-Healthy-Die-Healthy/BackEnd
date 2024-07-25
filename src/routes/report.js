@@ -291,5 +291,135 @@ router.post('/monthly', async (req, res) => {
   }
 });
 
+router.post('/dailyReportDate', async (req, res) => {
+  const { userId, month } = req.body;
+  
+  console.log('userId:', userId);
+  console.log('month:', month);
+  
+  try {
+    const startDate = new Date(month);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
+
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      attributes: ['date'],
+      order: [['date', 'ASC']]
+    });
+
+    const reportDates = dailyReports.map(report => report.date.toISOString().split('T')[0]);
+
+    console.log('Report Dates:', reportDates);
+
+    res.status(200).json({ date: reportDates });
+  } catch (error) {
+    console.error('Error fetching daily reports:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+const getWeekNumber = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7; 
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return weekNo;
+};
+
+router.post('/weeklyReportDate', async (req, res) => {
+  const { userId, month } = req.body;
+
+  console.log('userId:', userId);
+  console.log('month:', month);
+
+  try {
+    const startDate = new Date(`${month}-01`);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
+
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      attributes: ['date'],
+      order: [['date', 'ASC']]
+    });
+
+    const weeklyReportDates = dailyReports.reduce((acc, report) => {
+      const date = new Date(report.date);
+      const week = getWeekNumber(date);
+      const weekKey = `${date.getUTCFullYear()}-W${week < 10 ? '0' : ''}${week}`;
+
+      if (!acc[weekKey]) {
+        acc[weekKey] = report.date.toISOString().split('T')[0];
+      }
+      return acc;
+    }, {});
+
+    const reportDates = Object.values(weeklyReportDates);
+
+    console.log('Report Dates:', reportDates);
+
+    res.status(200).json({ date: reportDates });
+  } catch (error) {
+    console.error('Error fetching weekly reports:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.post('/monthlyReportDate', async (req, res) => {
+  const { userId, year } = req.body;
+  
+  console.log('userId:', userId);
+  console.log('year:', year);
+  
+  try {
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
+
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      attributes: ['date'],
+      order: [['date', 'ASC']]
+    });
+
+    const monthlyReportDates = dailyReports.reduce((acc, report) => {
+      const month = report.date.toISOString().split('T')[0].substring(0, 7); // Extract 'YYYY-MM'
+      if (!acc.includes(month)) {
+        acc.push(month);
+      }
+      return acc;
+    }, []);
+
+    console.log('Monthly Report Dates:', monthlyReportDates);
+
+    res.status(200).json({ dates: monthlyReportDates });
+  } catch (error) {
+    console.error('Error fetching monthly reports:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
