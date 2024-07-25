@@ -26,10 +26,6 @@ module.exports = class WeeklyReport extends Sequelize.Model {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      meanExercise: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
       meanCalories: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -40,6 +36,14 @@ module.exports = class WeeklyReport extends Sequelize.Model {
       },
       exerciseFeedback: {
         type: DataTypes.STRING,
+        allowNull: true,
+      },
+      anAeroInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      aeroInfo: {
+        type: DataTypes.JSON,
         allowNull: true,
       },
       date: {

@@ -21,6 +21,7 @@ module.exports = class DailyReport extends Sequelize.Model {
       totalCalories: {
         type: DataTypes.DOUBLE,
         allowNull: false,
+        defaultValue: 0
       },
       totalCarbo: {
         type: DataTypes.DOUBLE,
@@ -37,25 +38,33 @@ module.exports = class DailyReport extends Sequelize.Model {
         allowNUull: true,
         defaultValue: 0
       },
-      totalTraining: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
       dietFeedback: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT, // 수정된 부분: STRING에서 TEXT로 변경
         allowNull: true,
-        defaultValue: "NULL"
+        defaultValue: null
       },
       exerciseFeedback: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT, // 수정된 부분: STRING에서 TEXT로 변경
         allowNull: true,
-        defaultValue: "NULL"
+        defaultValue: null
       },
       date: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      anAeroInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      aeroInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      dietInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      }
     }, {
       sequelize,
       timestamps: true,

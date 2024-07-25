@@ -122,6 +122,9 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
           menuItem = await MenuList.create({
             menuName: food.음식명,
             menuCalorie: food.영양정보.칼로리 / 100,
+            menuCarbo: food.영양정보.탄수화물 / 100,
+            menuProtein: food.영양정보.단백질 / 100,
+            menuFat: food.영양정보.지방 / 100
           });
         }
 
@@ -282,26 +285,42 @@ function sanitizeJsonString(jsonString) {
     jsonString += '}}'.repeat(openBraces - closeBraces);
     return jsonString;
 }
-
 function parsePartialJson(jsonString) {
-    try {
-        return JSON.parse(jsonString);
-    } catch (error) {
-        console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
-        const partialObject = {};
-        jsonString.replace(/("[^"]+"):([^,}\]]+)/g, (match, key, value) => {
-            try {
-                partialObject[JSON.parse(key)] = JSON.parse(value);
-            } catch (e) {
-                partialObject[JSON.parse(key)] = value.trim();
-            }
-        });
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
 
-        if (Object.keys(partialObject).length === 0) {
-          throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+    const partialObject = {};
+    let correctedString = jsonString;
+
+    // 1. 중첩된 객체와 배열을 올바르게 처리
+    correctedString = correctedString.replace(/([{,])\s*"([^"]+)"\s*:\s*{\s*([^}]+?)\s*}\s*(?=[},])/g, '$1"$2":{$3}');
+    correctedString = correctedString.replace(/([{,])\s*"([^"]+)"\s*:\s*\[\s*([^\]]+?)\s*]\s*(?=[},])/g, '$1"$2":[$3]');
+
+    // 2. JSON 문자열에서 잘못된 줄바꿈 제거
+    correctedString = correctedString.replace(/\\n\s*/g, ''); // 줄바꿈을 제거
+
+    // 3. 불완전한 JSON 문자열에서 각 key-value 쌍을 추출
+    correctedString.replace(/"([^"]+)":\s*("([^"]*)"|[^,}\]]+)/g, (match, key, value) => {
+      try {
+        partialObject[key.trim().replace(/(^")|("$)/g, '')] = JSON.parse(value);
+      } catch (e) {
+        partialObject[key.trim().replace(/(^")|("$)/g, '')] = value.trim().replace(/(^")|("$)/g, '');
       }
-        return partialObject;
+    });
+
+    // 4. 중첩된 JSON 문자열을 올바르게 처리
+    try {
+      return JSON.parse(correctedString);
+    } catch (e) {
+      console.warn("중첩된 JSON 문자열 파싱 실패, 부분 파싱 시도:", e.message);
+      if (Object.keys(partialObject).length === 0) {
+        throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+      }
+      return partialObject;
     }
+  }
 }
 
 function getFallbackResponse(error, rawResponse) {
