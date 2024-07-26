@@ -350,9 +350,140 @@ const loadExerciseData = async () => {
         exerciseType: 'AnaerobicExercise',
         exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '힙 어브덕션.jpg')),
         exercisePart: 'leg',
+      },
+      {
+        exerciseName: '데드버그',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '데드버그.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '러시안 트위스트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '러시안 트위스트.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '레그 레이즈',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '레그 레이즈.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '리버스 플랭크',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '리버스 플랭크.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '마운틴 클라이머',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '마운틴 클라이머.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '버드독',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '버드독.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '버터플라이 싯 업',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '버터플라이 싯 업.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '사이드 플랭크',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '사이드 플랭크.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '시티드 니업',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '시티드 니업.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '윗몸일으키기',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '윗몸일으키기.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '트위스트 플랭크',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '트위스트 플랭크.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '플랭크',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '플랭크.jpg')),
+        exercisePart: 'core',
+      },
+      {
+        exerciseName: '리버스 컬',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '리버스 컬.jpg')),
+        exercisePart: 'arm',
+      },
+      {
+        exerciseName: '체스트 프레스',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '체스트 프레스.jpg')),
+        exercisePart: 'chest',
+      },
+      {
+        exerciseName: '파이크 푸쉬업',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '파이크 푸쉬업.jpg')),
+        exercisePart: 'chest',
+      },
+      {
+        exerciseName: '와이드 푸쉬업',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '와이드 푸쉬업.jpg')),
+        exercisePart: 'chest',
+      },
+      {
+        exerciseName: '내로우 푸쉬업',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '내로우 푸쉬업.jpg')),
+        exercisePart: 'chest',
+      },
+      {
+        exerciseName: '루마니안 데드리프트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '루마니안 데드리프트.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '브릿지',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '브릿지.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '사이드 레그레이즈',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '사이드 레그레이즈.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '와이드 스쿼트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '와이드 스쿼트.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '점프 스쿼트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '점프 스쿼트.jpg')),
+        exercisePart: 'leg',
       }
 
-            
     ], { logging: false });
     console.log('ExerciseList added');
   } catch (error) {

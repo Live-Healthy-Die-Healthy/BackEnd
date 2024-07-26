@@ -5,54 +5,45 @@ const router = express.Router();
 
 // 모든 ExerciseList 정보 가져오기 (POST 요청으로 변경)
 router.post('/exerciseList', async (req, res) => {
-    try {
-      const { userId, name } = req.body;  // 요청 본문에서 userId와 이름을 가져옵니다.
-  
-      if (!userId) {
-        return res.status(400).json({ error: 'userId is required' });
-      }
-  
-      // 해당 유저가 스크랩한 운동 목록 조회
-      const userScraps = await exerciseScrap.findAll({
-        where: { userId },
-        attributes: ['exerciseId']
-      });
-  
-      const scrapIds = userScraps.map(scrap => scrap.exerciseId);
-  
-      if (scrapIds.length === 0) {
-        return res.json([]); // 스크랩된 운동이 없으면 빈 배열 반환
-      }
-  
-      // 스크랩된 운동 아이디에 대한 조건 설정
-      const whereClause = {
-        exerciseId: { [Sequelize.Op.in]: scrapIds } // scrapIds 배열에 포함된 아이디들만 조회
-      };
-  
-      if (name) {
-        whereClause.exerciseName = { [Sequelize.Op.like]: `%${name}%` }; // 이름으로 검색할 조건 추가
-      }
-  
-      // 스크랩된 운동 목록 조회
-      const exercises = await ExerciseList.findAll({
-        attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
-        where: whereClause,
-      });
-  
-      // 이미지 인코딩
-      const exercisesWithBase64Images = exercises.map(exercise => {
-        return {
-          ...exercise.dataValues,
-          exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null
-        };
-      });
-  
-      res.json(exercisesWithBase64Images);
-    } catch (error) {
-      console.error('Error fetching exercises:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+  try {
+    const { userId } = req.body;
+    console.log("userId : ", userId);
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
     }
-  });
+
+    // 해당 유저가 스크랩한 운동 목록 조회
+    const userScraps = await exerciseScrap.findAll({
+      where: { userId },
+      attributes: ['exerciseId']
+    });
+
+    const scrapIds = userScraps.map(scrap => scrap.exerciseId);
+
+    console.log("scrapIds : ", scrapIds);
+
+    const exercises = await ExerciseList.findAll({
+      attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
+    });
+
+    const exercisesWithBase64Images = exercises.map(exercise => {
+      return {
+        ...exercise.dataValues,
+        exerciseImage: exercise.exerciseImage ? Buffer.from(exercise.exerciseImage).toString('base64') : null,
+      };
+    });
+    const exercise = {
+      exercisesWithBase64Images,
+      scrapIds
+    }
+
+    res.json(exercise);
+  } catch (error) {
+    console.error('Error fetching exercises:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 // 특정 ExerciseList의 상세 정보 가져오기
 router.get('/exerciseList/:id', async (req, res) => {
