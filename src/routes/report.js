@@ -939,6 +939,10 @@ Provide feedback based on user's daily aerobic and anaerobic exercise data, cons
 If only one type of exercise data (aerobic or anaerobic) is available, provide feedback based on the available data. If no exercise data, provide brief exercise advice.
 
 Summarize each feedback within 300 characters.
+
+you must following writing style and use Korean!
+
+writing style: Informal, Friendly, Humorous
 `;
 
 const reportData = 
@@ -1076,6 +1080,10 @@ Provide feedback based on the user's weekly aerobic and anaerobic exercise data,
 If there's only aerobic or anaerobic exercise data, give feedback based on the available data. If no exercise data, provide brief exercise advice.
 
 Summarize each feedback within 300 characters.
+
+you must following writing style and use Korean!
+
+writing style: Informal, Friendly, Humorous
 `;
 
 const reportData = {
