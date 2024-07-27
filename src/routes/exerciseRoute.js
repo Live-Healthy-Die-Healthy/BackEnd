@@ -1,5 +1,5 @@
 const express = require('express');
-const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, exerciseScrap } = require('../index');
+const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, ExerciseScrap } = require('../index');
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.post('/exerciseList', async (req, res) => {
     }
 
     // 해당 유저가 스크랩한 운동 목록 조회
-    const userScraps = await exerciseScrap.findAll({
+    const userScraps = await ExerciseScrap.findAll({
       where: { userId },
       attributes: ['exerciseId']
     });
@@ -26,6 +26,7 @@ router.post('/exerciseList', async (req, res) => {
     const exercises = await ExerciseList.findAll({
       attributes: ['exerciseId', 'exerciseImage', 'exerciseName', 'exerciseType', 'exercisePart'],
     });
+    console.log("exercises: ", exercises);
 
     const exercisesWithBase64Images = exercises.map(exercise => {
       return {
@@ -167,7 +168,7 @@ router.post('/exerciseScrap', async (req, res) => {
   }
 
   try {
-    const newUserExercise = await exerciseScrap.create({
+    const newUserExercise = await ExerciseScrap.create({
       userId,
       exerciseId
     });
