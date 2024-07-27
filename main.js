@@ -16,7 +16,7 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: 'https://live-healthy-die-healthy.github.io', // 허용할 출처
+  //origin: 'https://live-healthy-die-healthy.github.io', // 허용할 출처
 }));
 
 app.use(express.json());

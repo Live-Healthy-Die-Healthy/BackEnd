@@ -452,6 +452,36 @@ const loadExerciseData = async () => {
         exerciseType: 'AnaerobicExercise',
         exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '내로우 푸쉬업.jpg')),
         exercisePart: 'chest',
+      },
+      {
+        exerciseName: '루마니안 데드리프트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '루마니안 데드리프트.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '브릿지',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '브릿지.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '사이드 레그레이즈',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '사이드 레그레이즈.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '와이드 스쿼트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '와이드 스쿼트.jpg')),
+        exercisePart: 'leg',
+      },
+      {
+        exerciseName: '점프 스쿼트',
+        exerciseType: 'AnaerobicExercise',
+        exerciseImage: fs.readFileSync(path.join(__dirname, 'images', '점프 스쿼트.jpg')),
+        exercisePart: 'leg',
       }
 
     ], { logging: false });
