@@ -10,14 +10,17 @@ const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
 
 // 라우터 사용 시에도 동일하게 설정
-router.use(express.urlencoded({    
-  limit:"200kb",
+router.use(express.urlencoded({
+  limit:"100mb",
   extended: true, // true로 변경
 }));
 
 router.use(express.json({   
-  limit : "200kb"
+  limit : "100mb"
 }));
+  
+
+
 
 
 // 이미지 분석 및 식단 기록 추가 라우트
@@ -122,9 +125,10 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
           menuItem = await MenuList.create({
             menuName: food.음식명,
             menuCalorie: food.영양정보.칼로리 / 100,
+            menuImage: Buffer.from([]),
             menuCarbo: food.영양정보.탄수화물 / 100,
             menuProtein: food.영양정보.단백질 / 100,
-            menuFat: food.영양정보.지방 / 100
+            menuFat: food.영양정보.지방 / 100,
           });
         }
 
@@ -268,15 +272,6 @@ const basePrompt = `
 `;
 
 
-function encodeImageToBase64(filePath) {
-    return new Promise((resolve, reject) => {
-        fs.readFile(filePath, (err, data) => {
-            if (err) reject(err);
-            else resolve(data.toString('base64'));
-        });
-    });
-}
-
 function sanitizeJsonString(jsonString) {
     jsonString = jsonString.trim();
     jsonString = jsonString.replace(/,\s*([\]}])/g, '$1');
@@ -285,42 +280,26 @@ function sanitizeJsonString(jsonString) {
     jsonString += '}}'.repeat(openBraces - closeBraces);
     return jsonString;
 }
+
 function parsePartialJson(jsonString) {
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
-
-    const partialObject = {};
-    let correctedString = jsonString;
-
-    // 1. 중첩된 객체와 배열을 올바르게 처리
-    correctedString = correctedString.replace(/([{,])\s*"([^"]+)"\s*:\s*{\s*([^}]+?)\s*}\s*(?=[},])/g, '$1"$2":{$3}');
-    correctedString = correctedString.replace(/([{,])\s*"([^"]+)"\s*:\s*\[\s*([^\]]+?)\s*]\s*(?=[},])/g, '$1"$2":[$3]');
-
-    // 2. JSON 문자열에서 잘못된 줄바꿈 제거
-    correctedString = correctedString.replace(/\\n\s*/g, ''); // 줄바꿈을 제거
-
-    // 3. 불완전한 JSON 문자열에서 각 key-value 쌍을 추출
-    correctedString.replace(/"([^"]+)":\s*("([^"]*)"|[^,}\]]+)/g, (match, key, value) => {
-      try {
-        partialObject[key.trim().replace(/(^")|("$)/g, '')] = JSON.parse(value);
-      } catch (e) {
-        partialObject[key.trim().replace(/(^")|("$)/g, '')] = value.trim().replace(/(^")|("$)/g, '');
-      }
-    });
-
-    // 4. 중첩된 JSON 문자열을 올바르게 처리
     try {
-      return JSON.parse(correctedString);
-    } catch (e) {
-      console.warn("중첩된 JSON 문자열 파싱 실패, 부분 파싱 시도:", e.message);
-      if (Object.keys(partialObject).length === 0) {
-        throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
+        const partialObject = {};
+        jsonString.replace(/("[^"]+"):([^,}\]]+)/g, (match, key, value) => {
+            try {
+                partialObject[JSON.parse(key)] = JSON.parse(value);
+            } catch (e) {
+                partialObject[JSON.parse(key)] = value.trim();
+            }
+        });
+
+        if (Object.keys(partialObject).length === 0) {
+          throw new Error("부분 파싱 실패: 유효한 JSON 객체가 아님");
       }
-      return partialObject;
+        return partialObject;
     }
-  }
 }
 
 function getFallbackResponse(error, rawResponse) {
@@ -474,16 +453,6 @@ if (imageBase64) {
     return getFallbackResponse(error, allResponses.join(''));
 }
 }
-
-
-function moveImageFile(imagePath) {
-    const publicPath = path.join(__dirname, 'public', 'uploads', path.basename(imagePath));
-    fs.renameSync(imagePath, publicPath);
-    return `/uploads/${path.basename(imagePath)}`;
-}
-
-
-
 
 
 module.exports = router;
