@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
 const { kakaoAccessToken } = require('../controllers/loginController')
-const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList } = require('../index');
+const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList, Friend } = require('../index');
 const { Op, Sequelize } = require('sequelize'); 
 const { Analysis } = require('../index');
 const { v4: uuidv4 } = require('uuid');
@@ -722,17 +722,170 @@ router.get('/menuList', async (req, res) => {
   }
 });
 
+// /friendRequest 친구 요청 보내기
+router.post('/friendRequest', async (req, res) => {
+  const { userId, to_user_id } = req.body;
 
+  // 요청 데이터가 유효한지 확인
+  if (!userId || !to_user_id) {
+      return res.status(400).json({ error: 'Both userId and to_user_id are required' });
+  }
 
+  try {
+      // to_user_id가 DB에 존재하는지 확인
+      const userExists = await User.findOne({ where: { userId: to_user_id } });
 
+      if (!userExists) {
+          return res.status(200).json({ isExist: false });
+      }
 
+      // 이미 친구 요청을 보낸 상태인지 확인
+      const existingFriendRequest = await Friend.findOne({
+        where: { userId, to_user_id, status: 'pending' }
+    });
 
+    if (existingFriendRequest) {
+        return res.status(200).json({ success: false, message: '이미 친구 요청을 보낸 사용자입니다.' });
+    }
 
+      // 친구 요청 생성
+      const newFriendRequest = await Friend.create({
+          userId,
+          to_user_id,
+          status: 'pending',
+          request_date: new Date(),
+      });
 
+      // 성공 응답
+      res.status(201).json({ success: true, message: 'Friend request sent successfully', friendRequest: newFriendRequest });
+  } catch (error) {
+      console.error('Error creating friend request:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
+// /showFriendRequest 친구 추가 요청 보기
+router.post('/showFriendRequest', async (req, res) => {
+  const { userId } = req.body;
 
+  // 요청 데이터가 유효한지 확인
+  if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+  }
 
+  try {
+      // 해당 사용자가 받은 친구 요청을 조회
+      const friendRequests = await Friend.findAll({
+          where: { to_user_id: userId, status: 'pending' },
+          include: [
+              {
+                  model: User,
+                  as: 'user',
+                  attributes: ['userId', 'username'],
+              },
+          ],
+      });
+      // 요청이 없을 경우
+      if (friendRequests.length === 0) {
+        return res.status(200).json({ message: '친구 요청이 없습니다.' });
+    }
 
+    // 요청 정보 가공
+    const formattedRequests = friendRequests.map(request => ({
+        userId: request.user.userId,
+        username: request.user.username,
+    }));
 
+    res.status(200).json(formattedRequests);
+} catch (error) {
+    console.error('Error fetching friend requests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+}
+});
+
+// 친구 요청 상태 업데이트 (수락 또는 거절)
+router.post('/confirmFriendRequest', async (req, res) => {
+  const { userId, to_user_id, confirm } = req.body;
+
+  if (!userId || !to_user_id || !confirm) {
+    return res.status(400).json({ error: 'userId, to_user_id, and confirm are required' });
+  }
+
+  if (!['accepted', 'rejected'].includes(confirm)) {
+    return res.status(400).json({ error: 'confirm must be either "accepted" or "rejected"' });
+  }
+
+  try {
+    const friendRequest = await Friend.findOne({
+      where: {
+        userId,
+        to_user_id,
+        status: 'pending',
+      }
+    });
+
+    if (!friendRequest) {
+      return res.status(404).json({ error: 'Friend request not found' });
+    }
+
+    friendRequest.status = confirm;
+    friendRequest.accept_date = confirm === 'accepted' ? new Date() : null;
+    await friendRequest.save();
+
+    if (confirm === 'accepted') {
+      await Friend.create({
+        userId: to_user_id,
+        to_user_id: userId,
+        status: 'accepted',
+        accept_date: new Date(),
+      });
+    }
+    
+    res.status(200).json({ message: 'Friend request updated successfully', friendRequest });
+  } catch (error) {
+    console.error('Error updating friend request status:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// 친구 목록 확인
+router.post('/friendList', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    // 해당 사용자의 친구 목록을 조회 (to_user_id를 사용)
+    const friends = await Friend.findAll({
+      where: { to_user_id: userId, status: 'accepted' },
+      include: [
+        {
+          model: User,
+          as: 'user', // 관계 정의 시 설정한 alias
+          attributes: ['userId', 'userImage', 'username'],
+        },
+      ],
+    });
+
+    // 요청이 없을 경우
+    if (friends.length === 0) {
+      return res.status(200).json({ message: '친구가 없습니다.' });
+    }
+
+    // 요청 정보 가공
+    const formattedFriends = friends.map(friend => ({
+      userId: friend.user.userId,
+      userImage: friend.user.userImage ? Buffer.from(friend.user.userImage).toString('base64') : null,
+      username: friend.user.username,
+    }));
+
+    res.status(200).json(formattedFriends);
+  } catch (error) {
+    console.error('Error fetching friend list:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
