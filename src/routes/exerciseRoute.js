@@ -160,7 +160,7 @@ router.post('/addExerciseLog', async (req, res) => {
   }
 });
 
-router.post('/exerciseScrap', async (req, res) => {
+router.post('/ExerciseScrap', async (req, res) => {
   const { userId, exerciseId } = req.body;
 
   if (!userId || !exerciseId) {
