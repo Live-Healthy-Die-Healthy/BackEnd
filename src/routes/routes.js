@@ -741,7 +741,7 @@ router.post('/friendRequest', async (req, res) => {
 
       // 이미 친구 요청을 보낸 상태인지 확인
       const existingFriendRequest = await Friend.findOne({
-        where: { userId, to_user_id, status: 'pending' }
+        where: { userId, to_user_id }
     });
 
     if (existingFriendRequest) {
@@ -757,7 +757,7 @@ router.post('/friendRequest', async (req, res) => {
       });
 
       // 성공 응답
-      res.status(201).json({ success: true, message: 'Friend request sent successfully', friendRequest: newFriendRequest });
+      res.status(200).json({ isExist: true, success: true, message: 'Friend request sent successfully', friendRequest: newFriendRequest });
   } catch (error) {
       console.error('Error creating friend request:', error);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -818,8 +818,8 @@ router.post('/confirmFriendRequest', async (req, res) => {
   try {
     const friendRequest = await Friend.findOne({
       where: {
-        userId,
-        to_user_id,
+        userId : to_user_id,
+        to_user_id : userId,
         status: 'pending',
       }
     });
@@ -834,8 +834,8 @@ router.post('/confirmFriendRequest', async (req, res) => {
 
     if (confirm === 'accepted') {
       await Friend.create({
-        userId: to_user_id,
-        to_user_id: userId,
+        userId,
+        to_user_id,
         status: 'accepted',
         accept_date: new Date(),
       });
