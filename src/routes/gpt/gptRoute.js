@@ -11,12 +11,12 @@ const bodyParser = require('body-parser');
 
 // 라우터 사용 시에도 동일하게 설정
 router.use(express.urlencoded({    
-  limit:"50mb",
+  limit:"100mb",
   extended: true, // true로 변경
 }));
 
 router.use(express.json({   
-  limit : "50mb"
+  limit : "100mb"
 }));
   
 
