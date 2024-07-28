@@ -4,11 +4,7 @@
 ## env
 .env
 
-<<<<<<< HEAD
 ### Node ###!!
-=======
-### Node ###
->>>>>>> 3f1c788db1f224b5280100918194bea39e20ad58
 # Logs
 logs
 *.log

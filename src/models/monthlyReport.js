@@ -18,22 +18,25 @@ module.exports = class MonthlyReport extends Sequelize.Model {
           key: 'userId',
         },
       },
-      nextExercise: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      nextDiet: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      date: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
       meanCalories: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
+      },
+      meanCarbo: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      meanProtein: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      meanFat: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      dietData: {
+        type: DataTypes.JSON,
+        allowNull: true,
       },
       dietFeedback: {
         type: DataTypes.STRING,
@@ -42,6 +45,19 @@ module.exports = class MonthlyReport extends Sequelize.Model {
       exerciseFeedback: {
         type: DataTypes.STRING,
         allowNull: true,
+      },
+      anAeroInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      aeroInfo: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
+      date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     }, {
       sequelize,

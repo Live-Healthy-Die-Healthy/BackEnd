@@ -18,17 +18,25 @@ module.exports = class WeeklyReport extends Sequelize.Model {
           key: 'userId',
         },
       },
-      nextExercise: {
-        type: DataTypes.STRING,
-        allwNull: false,
-      },
-      nextDiet: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       meanCalories: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
+      },
+      meanCarbo: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      meanProtein: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      meanFat: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      dietData: {
+        type: DataTypes.JSON,
+        allowNull: true,
       },
       dietFeedback: {
         type: DataTypes.STRING,

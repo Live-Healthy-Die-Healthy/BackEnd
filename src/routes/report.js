@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
-const { User, AerobicExercise, AnaerobicExercise, ExerciseLog, ExerciseList, DietLogDetail, DietLog, DailyReport, MonthlyReport, MenuList, Sequelize, WeeklyReport } = require('../index');
+const { User, AerobicExercise, AnaerobicExercise, ExerciseLog, ExerciseList, DietLogDetail, DietLog, DailyReport, MenuList, Sequelize, WeeklyReport, MonthlyReport } = require('../index');
 const { Op } = Sequelize; // Op를 Sequelize에서 가져오기
 
 const bodyParser = require('body-parser');
@@ -31,6 +31,99 @@ function getSunday(date) {
   return new Date(monday.setDate(monday.getDate() + 6));
 }
 
+// 주간 평균값 계산
+const calculateWeeklyAverages = async (userId, date) => {
+  const startDate = getMonday(date);
+  const endDate = getSunday(date);
+
+  console.log("startDate: ", startDate);
+  console.log("endDate: ", endDate);
+
+  try {
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const totalValues = dailyReports.reduce((acc, report) => {
+      acc.totalCalories += report.totalCalories;
+      acc.totalCarbo += report.totalCarbo;
+      acc.totalProtein += report.totalProtein;
+      acc.totalFat += report.totalFat;
+      return acc;
+    }, { totalCalories: 0, totalCarbo: 0, totalProtein: 0, totalFat: 0 });
+
+    console.log("total cal: ",totalValues.totalCalories);
+    console.log("total car: ",totalValues.totalCarbo);
+    console.log("total pro: ",totalValues.totalProtein);
+    console.log("total fat: ",totalValues.totalFat);
+
+    const reportCount = dailyReports.length;
+    const meanValues = {
+      meanCalories: reportCount ? totalValues.totalCalories / reportCount : 0,
+      meanCarbo: reportCount ? totalValues.totalCarbo / reportCount : 0,
+      meanProtein: reportCount ? totalValues.totalProtein / reportCount : 0,
+      meanFat: reportCount ? totalValues.totalFat / reportCount : 0
+    };
+
+    return meanValues;
+  } catch (error) {
+    console.error('Error calculating weekly averages:', error);
+    throw error;
+  }
+};
+
+// 월간 평균값 계산
+const calculateMonthlyAverages = async (userId, date) => {
+  const startDate = getFirstDayOfMonth(date);
+  const endDate = getLastDayOfMonth(date);
+
+  console.log("startDate: ", startDate);
+  console.log("endDate: ", endDate);
+
+  try {
+    const dailyReports = await DailyReport.findAll({
+      where: {
+        userId: userId,
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+
+    const totalValues = dailyReports.reduce((acc, report) => {
+      acc.totalCalories += report.totalCalories;
+      acc.totalCarbo += report.totalCarbo;
+      acc.totalProtein += report.totalProtein;
+      acc.totalFat += report.totalFat;
+      return acc;
+    }, { totalCalories: 0, totalCarbo: 0, totalProtein: 0, totalFat: 0 });
+
+    console.log("total cal: ",totalValues.totalCalories);
+    console.log("total car: ",totalValues.totalCarbo);
+    console.log("total pro: ",totalValues.totalProtein);
+    console.log("total fat: ",totalValues.totalFat);
+
+    const reportCount = dailyReports.length;
+    const meanValues = {
+      meanCalories: reportCount ? totalValues.totalCalories / reportCount : 0,
+      meanCarbo: reportCount ? totalValues.totalCarbo / reportCount : 0,
+      meanProtein: reportCount ? totalValues.totalProtein / reportCount : 0,
+      meanFat: reportCount ? totalValues.totalFat / reportCount : 0
+    };
+
+    return meanValues;
+  } catch (error) {
+    console.error('Error calculating weekly averages:', error);
+    throw error;
+  }
+};
+
+
 // 월의 시작일(1일)을 구하는 함수
 function getFirstDayOfMonth(date) {
   const d = new Date(date);
@@ -55,7 +148,7 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
   while (retryCount < maxRetries) {
     console.log("retryCount: ", retryCount);
     try {
-      const analysisResult = await getGPTDailyResponse(userId, date, dietData, userData, dailyAerobics, dailyAnaerobics);
+      const analysisResult = await getGPTDailyResponse(dietData, userData, dailyAerobics, dailyAnaerobics);
 
       
       // 응답 형식 검증
@@ -100,6 +193,8 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
   }
 }
 
+
+
 // 주간 분석 수행
 async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics) {
   const maxRetries = 3;
@@ -112,7 +207,7 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
   while (retryCount < maxRetries) {
     console.log("retryCount: ", retryCount);
     try {
-      const analysisResult = await getGPTWeeklyResponse(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics);
+      const analysisResult = await getGPTWeeklyResponse(dietData, userData, weeklyAerobics, weeklyAnaerobics);
 
       
       // 응답 형식 검증
@@ -122,15 +217,16 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
         continue;
       }
 
+      const { meanCalories, meanCarbo, meanProtein, meanFat } = dietData;
+
       // WeeklyReport 생성
       const newWeeklyReport = await WeeklyReport.create(
         {
           userId,
           date,
-          totalCalories :dietData.totalCalories,
-          totalCarbo: dietData.totalCarbo,
-          totalProtein: dietData.totalProtein,
-          totalFat: dietData.totalFat,
+          meanCalories,
+          meanProtein,
+          meanFat,
           dietFeedback: analysisResult['식단 피드백'],
           exerciseFeedback: analysisResult['운동 피드백'],
           anAeroInfo: weeklyAnaerobics,  
@@ -146,6 +242,65 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
       console.log("Feedback updated:", newWeeklyReport);
 
       return { status: 'completed', newWeeklyReport };
+
+    } catch (error) {
+      console.error('Error during analysis:', error);
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        throw new Error('Maximum retry attempts reached');
+      }
+    }
+  }
+}
+
+// 월간 분석 수행
+async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics) {
+  const maxRetries = 3;
+  let retryCount = 0;
+
+  console.log("userGender: ", userData.userGender);
+  console.log("userBirth: ", userData.userBirth);
+  console.log("userWeight: ", userData.userWeight);
+
+  while (retryCount < maxRetries) {
+    console.log("retryCount: ", retryCount);
+    try {
+      const analysisResult = await getGPTmonthlyResponse(dietData, userData, monthlyAerobics, monthlyAnaerobics);
+
+      
+      // 응답 형식 검증
+      if (typeof analysisResult !== 'object' || !analysisResult['식단 피드백'] || !analysisResult['운동 피드백']) {
+        console.log("Invalid response format. Retrying...");
+        retryCount++;
+        continue;
+      }
+
+      const { meanCalories, meanCarbo, meanProtein, meanFat } = dietData;
+
+      // monthlyReport 생성
+      const newMonthlyReport = await MonthlyReport.create(
+        {
+          userId,
+          date,
+          meanCalories,
+          meanProtein,
+          meanFat,
+          meanCarbo,
+          dietFeedback: analysisResult['식단 피드백'],
+          exerciseFeedback: analysisResult['운동 피드백'],
+          anAeroInfo: monthlyAnaerobics,  
+          aeroInfo: monthlyAerobics,
+          dietInfo: dietData,
+        }
+      );
+      
+
+      console.log(monthlyAnaerobics);
+      console.log(monthlyAerobics);
+
+      console.log("Feedback updated:", newMonthlyReport);
+
+      return { status: 'completed', newMonthlyReport };
 
     } catch (error) {
       console.error('Error during analysis:', error);
@@ -469,9 +624,12 @@ router.post('/newWeekly', async (req, res) => {
   const { userId, date } = req.body;
 
   try {
-    // 입력된 날짜를 기준으로 주의 시작(월요일)과 끝(일요일) 설정
+    // 입력된 date 값 디버깅
+    console.log("Received date:", date);
+
+    // date 문자열을 파싱하여 날짜 객체로 변환
     const inputDate = new Date(date);
-    if (isNaN(inputDate)) {
+    if (isNaN(inputDate.getTime())) {
       throw new Error('Invalid date format');
     }
 
@@ -530,9 +688,24 @@ router.post('/newWeekly', async (req, res) => {
         weeklyAerobics.push(...report.aeroInfo);
       }
     });
+    
+    const meanValues = await calculateWeeklyAverages(userId, date);
+    
+      // 객체에서 값 추출
+    const { meanCalories, meanCarbo, meanProtein, meanFat } = meanValues;
+    
+      // 여기서 meanCalories, meanCarbo, meanProtein, meanFat 변수를 필요에 맞게 사용
+    console.log('Mean Calories:', meanCalories);
+    console.log('Mean Carbohydrates:', meanCarbo);
+    console.log('Mean Protein:', meanProtein);
+    console.log('Mean Fat:', meanFat);
 
-    const dietData = [];
-
+    const dietData = {
+      meanCalories,
+      meanCarbo,
+      meanProtein,
+      meanFat
+    };
 
 
     const user = await User.findOne({
@@ -555,17 +728,18 @@ router.post('/newWeekly', async (req, res) => {
 
     console.log("Daily Reports: ", dailyReports);
 
-    const response = await performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics
-    ); 
+    const response = await performWeeklyAnalysis(userId, date, dietData, userData, 
+      weeklyAerobics, weeklyAnaerobics
+  ); 
 
     // 응답에서 주의 첫 날인 월요일 날짜를 포함
     res.status(200).json({ 
-      totalCalories: response.newWeeklyReport.dataValues.totalCalories,
+      meanCalories: response.newWeeklyReport.dataValues.meanCalories,
       dietFeedback: response.newWeeklyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newWeeklyReport.dataValues.exerciseFeedback,
-      totalCarbo: response.newWeeklyReport.dataValues.totalCarbo,
-      totalProtein: response.newWeeklyReport.dataValues.totalProtein,
-      totalFat: response.newWeeklyReport.dataValues.totalFat
+      meanCarbo: response.newWeeklyReport.dataValues.meanCarbo,
+      meanProtein: response.newWeeklyReport.dataValues.meanProtein,
+      meanFat: response.newWeeklyReport.dataValues.meanFat
   });
   } catch (error) {
     console.error('Error retrieving weekly report:', error);
@@ -619,7 +793,6 @@ router.post('/monthly', async (req, res) => {
 });
 
 
-
 // 월간 레포트 생성
 router.post('/newMonthly', async (req, res) => {
   const { userId, date } = req.body;
@@ -632,11 +805,11 @@ router.post('/newMonthly', async (req, res) => {
     }
 
     // 달의 시작 계산
-    const startDate = new Date(Date.UTC(inputDate.getFullYear(), inputDate.getMonth(), 1));
+    const startDate = getFirstDayOfMonth(date)
     startDate.setUTCHours(0, 0, 0, 0);
 
     // 달의 끝 계산
-    const endDate = new Date(Date.UTC(inputDate.getFullYear(), inputDate.getMonth() + 1, 0));
+    const endDate = getLastDayOfMonth(date)
     endDate.setUTCHours(23, 59, 59, 999);
 
     console.log("Start Date: ", startDate);
@@ -658,7 +831,7 @@ router.post('/newMonthly', async (req, res) => {
       return res.status(200).json(existingReport);
     }
 
-    // 사용자의 해당 달의 DailyReport 찾기
+    // 사용자의 해당 주의 DailyReport 찾기
     const dailyReports = await DailyReport.findAll({
       where: {
         userId: userId,
@@ -668,40 +841,72 @@ router.post('/newMonthly', async (req, res) => {
       }
     });
 
+    const monthlyAnaerobics = [];
+    const monthlyAerobics = [];
+
+    dailyReports.forEach(report => {
+      if (report.anAeroInfo) {
+        weeklyAnaerobics.push(...report.anAeroInfo);
+      }
+    });
+    dailyReports.forEach(report => {
+      if (report.aeroInfo) {
+        weeklyAerobics.push(...report.aeroInfo);
+      }
+    });
+    
+    const meanValues = await calculateMonthlyAverages(userId, date);
+    
+      // 객체에서 값 추출
+    const { meanCalories, meanCarbo, meanProtein, meanFat } = meanValues;
+    
+      // 여기서 meanCalories, meanCarbo, meanProtein, meanFat 변수를 필요에 맞게 사용
+    console.log('Mean Calories:', meanCalories);
+    console.log('Mean Carbohydrates:', meanCarbo);
+    console.log('Mean Protein:', meanProtein);
+    console.log('Mean Fat:', meanFat);
+
+    const dietData = {
+      meanCalories,
+      meanCarbo,
+      meanProtein,
+      meanFat
+    };
+
+
+    const user = await User.findOne({
+      where: { userId: userId }
+    });
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    const userData = {
+      userGender: user.userGender,
+      userBirth: user.userBirth,
+      userWeight: user.userWeight,
+      userMuscleMass: user.userMuscleMass,
+      userBmi: user.userBmi,
+      userBodyFatPercentage: user.userBodyFatPercentage,
+      userBmr: user.userBmr
+    };
+
     console.log("Daily Reports: ", dailyReports);
 
-    // 일별 총 칼로리를 더해 평균 구함
-    let totalCalories = 0;
-    dailyReports.forEach(report => {
-      totalCalories += report.totalCalories;
-    });
+    const response = await performMonthlyAnalysis(userId, date, dietData, userData, 
+      monthlyAerobics, monthlyAnaerobics
+  ); 
 
-    const meanCalories = (totalCalories / dailyReports.length).toFixed(2);
-
-    // MonthlyReport 생성
-    const newMonthlyReport = await MonthlyReport.create({
-      userId,
-      date: startDate, // 달의 시작 날짜만 사용
-      nextExercise: '운동하세요',
-      nextDiet: '먹으세요',
-      dietFeedback: '잘하셨네요',
-      exerciseFeedback: '좀 치네요',
-      meanCalories,
-      meanTraining,
-    });
-
-    // 응답에서 달의 첫 날인 1일 날짜를 포함
-    res.status(200).json({
-      monthlyReportId: newMonthlyReport.monthlyReportId,
-      userId: newMonthlyReport.userId,
-      date: startDate,
-      nextExercise: newMonthlyReport.nextExercise,
-      nextDiet: newMonthlyReport.nextDiet,
-      dietFeedback: newMonthlyReport.dietFeedback,
-      exerciseFeedback: newMonthlyReport.exerciseFeedback,
-      meanCalories: newMonthlyReport.meanCalories,
-      meanTraining: newMonthlyReport.meanTraining,
-    });
+    // 응답에서 주의 첫 날인 월요일 날짜를 포함
+    res.status(200).json({ 
+      meanCalories: response.newMonthlyReport.dataValues.meanCalories,
+      dietFeedback: response.newMonthlyReport.dataValues.dietFeedback,
+      exerciseFeedback: response.newMonthlyReport.dataValues.exerciseFeedback,
+      meanCarbo: response.newMonthlyReport.dataValues.meanCarbo,
+      meanProtein: response.newMonthlyReport.dataValues.meanProtein,
+      meanFat: response.newMonthlyReport.dataValues.meanFat
+  });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
     res.status(500).json({ message: 'Error retrieving monthly report', error: error.message });
@@ -839,8 +1044,8 @@ router.post('/monthlyReportDate', async (req, res) => {
   }
 });
 
-// GPT 응답 생성
-async function getGPTDailyResponse(userId, date,  dietData, userData, dailyAerobics, dailyAnaerobics) {
+// GPT 일간 응답 생성
+async function getGPTDailyResponse(dietData, userData, dailyAerobics, dailyAnaerobics) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
       throw new Error('OPENAI_API_KEY is not set');
@@ -850,60 +1055,61 @@ async function getGPTDailyResponse(userId, date,  dietData, userData, dailyAerob
 
 
   const dailyBasePrompt = `
-당신은 영양, 식품, 운동분야의 분석 전문 AI 이다. 시스템에서 불러온 레포트를 분석해서 종합적이고 구조화된 레포트를 제공한다. 다음 JSON 형식에 따라 분석 결과를 출력하라.
+You are an AI specializing in nutrition, food, and exercise analysis. Analyze the report data and provide a structured summary in the following JSON format:
 
 {
-    "식단 피드백": ""
+    "식단 피드백": "",
     "운동 피드백": ""
 }
 
-모든 분석은 불러온 reportData 기반으로 하며, 위의 형식을 임의로 조정하지 말고 절대로 위 JSON 구조를 유지하라.
+All analyses are based on the provided reportData. Do not alter the JSON structure.
 
 reportData:
 
-만약 사용자 골격근량, BMI, 체지방률, 기초대사량 정보가 있다면 이를 반영하고 없다면 없는 상태로 피드백을 작성하라
+Include muscle mass, BMI, body fat percentage, and BMR if available; if not, provide feedback without them.
 
-사용자 생년월일(나이), 성별, 체중을 고려해 일간 총 칼로리, 단백질, 탄수화물 섭취량에 대해 식단 피드백을 작성하라.
+Consider user's birth date (age), gender, and weight to give daily total calorie, protein, and carb intake feedback.
 
-사용자의 일간 유산소, 무산소 운동 정보, 성별, 체중을 고려대 운동 피드백을 작성하라
+Provide feedback based on user's daily aerobic and anaerobic exercise data, considering gender and weight.
 
-사용자의 일간 운동 중 유산소나 무산소 둘 중 하나만 있다면 있는 운동 정보에 대해서만 피드백을 작성하고, 
+If only one type of exercise data (aerobic or anaerobic) is available, provide feedback based on the available data. If no exercise data, provide brief exercise advice.
 
-운동 기록이 없다면 짧게 운동 조언만 하라.
+Summarize each feedback within 300 characters.
 
+you must following writing style and use Korean!
 
-피드백 1개당 300자 이내로 요약해서 작성하라.
+writing style: Informal, Friendly, Humorous
 `;
 
-const reportData = `
+const reportData = 
 {
-    "총 칼로리 섭취량": ${dietData.totalCalories},
-    "총 단백질 섭취량": ${dietData.totalProtein},
-    "총 탄수화물 섭취량": ${dietData.totalCarbo},
-    "총 지방 섭취량": ${dietData.totalFat},
-    "사용자 성별": "${userData.userGender}",
-    "사용자 생년월일": ${userData.userBirth},
-    "사용자 체중": ${userData.userWeight},
-    "사용자 골격근량": ${userData.userMuscleMass},
-    "사용자 BMI": ${userData.userBmi},
-    "사용자 체지방률": ${userData.userBodyFatPercentage},
-    "사용자 기초대사량": ${userData.userBmr},
-    "일간 유산소 운동 정보": ${JSON.stringify(dailyAerobics)},
-    "일간 무산소 운동 정보": ${JSON.stringify(dailyAnaerobics)}
-}
-`;
+    "총 칼로리 섭취량": dietData.totalCalories,
+    "총 단백질 섭취량": dietData.totalProtein,
+    "총 탄수화물 섭취량": dietData.totalCarbo,
+    "총 지방 섭취량": dietData.totalFat,
+    "사용자 성별": userData.userGender,
+    "사용자 생년월일": userData.userBirth,
+    "사용자 체중": userData.userWeight,
+    "사용자 골격근량": userData.userMuscleMass,
+    "사용자 BMI": userData.userBmi,
+    "사용자 체지방률": userData.userBodyFatPercentage,
+    "사용자 기초대사량": userData.userBmr,
+    "일간 유산소 운동 정보": JSON.stringify(dailyAerobics),
+    "일간 무산소 운동 정보": JSON.stringify(dailyAnaerobics)
+};
 
 
-  const message = `${dailyBasePrompt}\n분석 데이터:\n${reportData}`;
+const payload = {
+  model: "gpt-4o",
+  messages: [
+    { role: "system", content: dailyBasePrompt },
+    { role: "user", content: JSON.stringify(reportData) }
+  ],
+  max_tokens: 1000,
+  response_format: { type: "json_object" }
+};
 
-  const payload = {
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: dailyBasePrompt },
-        { role: "user", content: message }
-      ],
-      max_tokens: 1000,
-  };
+console.log("payload : ", payload);
 
   let allResponses = [];
 
@@ -979,7 +1185,7 @@ const reportData = `
 }
 
 // GPT 주간 응답 생성
-async function getGPTWeeklyResponse(userId, date,  dietData, userData, dailyAerobics, dailyAnaerobics) {
+async function getGPTWeeklyResponse(dietData, userData, dailyAerobics, dailyAnaerobics) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
       throw new Error('OPENAI_API_KEY is not set');
@@ -988,58 +1194,57 @@ async function getGPTWeeklyResponse(userId, date,  dietData, userData, dailyAero
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
 
-  const dailyBasePrompt = `
-당신은 영양, 식품, 운동분야의 분석 전문 AI 이다. 시스템에서 불러온 레포트를 분석해서 종합적이고 구조화된 레포트를 제공한다. 다음 JSON 형식에 따라 분석 결과를 출력하라.
+  const dailyWeeklyPrompt = `
+You are an AI specializing in nutrition, food, and exercise analysis. Analyze the report data and provide a structured summary in the following JSON format:
 
 {
-    "식단 피드백": ""
+    "식단 피드백": "",
     "운동 피드백": ""
 }
 
-모든 분석은 불러온 reportData 기반으로 하며, 위의 형식을 임의로 조정하지 말고 절대로 위 JSON 구조를 유지하라.
+You will provide weekly feedback on diet and exercise.
+
+Given the user's info, weekly diet, and exercise data, provide feedback based on reportData. Do not alter the JSON structure.
 
 reportData:
 
-만약 사용자 골격근량, BMI, 체지방률, 기초대사량 정보가 있다면 이를 반영하고 없다면 없는 상태로 피드백을 작성하라
+Include muscle mass, BMI, body fat percentage, and BMR if available; otherwise, provide feedback without them.
 
-사용자 생년월일(나이), 성별, 체중을 고려해 일간 총 칼로리, 단백질, 탄수화물 섭취량에 대해 식단 피드백을 작성하라.
+Consider user's birth date (age), gender, and weight to give daily total calorie, protein, and carb intake feedback.
 
-사용자의 일간 유산소, 무산소 운동 정보, 성별, 체중을 고려대 운동 피드백을 작성하라
+Provide feedback based on the user's weekly aerobic and anaerobic exercise data, considering gender and weight.
 
-사용자의 일간 운동 중 유산소나 무산소 둘 중 하나만 있다면 있는 운동 정보에 대해서만 피드백을 작성하고, 
+If there's only aerobic or anaerobic exercise data, give feedback based on the available data. If no exercise data, provide brief exercise advice.
 
-운동 기록이 없다면 짧게 운동 조언만 하라.
+Summarize each feedback within 300 characters.
 
+you must following writing style and use Korean!
 
-피드백 1개당 300자 이내로 요약해서 작성하라.
+writing style: Informal, Friendly, Humorous
 `;
 
-const reportData = `
-{
-    "사용자 성별": "${userData.userGender}",
-    "사용자 생년월일": ${userData.userBirth},
-    "사용자 체중": ${userData.userWeight},
-    "사용자 골격근량": ${userData.userMuscleMass},
-    "사용자 BMI": ${userData.userBmi},
-    "사용자 체지방률": ${userData.userBodyFatPercentage},
-    "사용자 기초대사량": ${userData.userBmr},
-    "주간 식단 정보": ${JSON.stringify(dietData)},
-    "일간 유산소 운동 정보": ${JSON.stringify(dailyAerobics)},
-    "일간 무산소 운동 정보": ${JSON.stringify(dailyAnaerobics)}
-}
-`;
+const reportData = {
+  "사용자 성별": userData.userGender,
+  "사용자 생년월일": userData.userBirth,
+  "사용자 체중": userData.userWeight,
+  "사용자 골격근량": userData.userMuscleMass,
+  "사용자 BMI": userData.userBmi,
+  "사용자 체지방률": userData.userBodyFatPercentage,
+  "사용자 기초대사량": userData.userBmr,
+  "주간 식단 정보": dietData,
+  "일간 유산소 운동 정보": dailyAerobics,
+  "일간 무산소 운동 정보": dailyAnaerobics
+};
 
-
-  const message = `${dailyBasePrompt}\n분석 데이터:\n${reportData}`;
-
-  const payload = {
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: dailyBasePrompt },
-        { role: "user", content: message }
-      ],
-      max_tokens: 1000,
-  };
+const payload = {
+  model: "gpt-4o",
+  messages: [
+    { role: "system", content: dailyWeeklyPrompt },
+    { role: "user", content: JSON.stringify(reportData) }
+  ],
+  max_tokens: 1000,
+  response_format: { type: "json_object" }
+};
 
   let allResponses = [];
 
@@ -1055,7 +1260,142 @@ const reportData = `
                       'Authorization': `Bearer ${apiKey}`,
                       'Content-Type': 'application/json'
                   },
-                  timeout: 60000 // 60 seconds timeout
+                  timeout: 30000 // 60 seconds timeout
+              });
+
+              if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message) {
+                  const content = response.data.choices[0].message.content;
+                  allResponses.push(content);
+
+                  if (isResponseComplete(content)) {
+                      isComplete = true;
+                  } else {
+                      payload.messages.push({ role: "assistant", content: content });
+                      payload.messages.push({ role: "user", content: "Please continue the previous response." });
+                  }
+              } else {
+                  throw new Error('Invalid response structure from OpenAI API');
+              }
+          } catch (error) {
+              enhancedLogging(`Attempt ${retryCount + 1} failed:`, error.message);
+              retryCount++;
+              if (retryCount >= maxRetries) {
+                  throw error;
+              }
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+      }
+
+      if (!isComplete) {
+          throw new Error('Failed to get a complete response after maximum retries');
+      }
+
+      const sanitizedResponse = sanitizeJsonString(allResponses.join(''));
+      const parsedContent = parsePartialJson(sanitizedResponse);
+      enhancedLogging('Parsed GPT Response:', parsedContent);
+      return parsedContent;
+  } catch (error) {
+    enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
+
+    // JSON 오류 발생 시 재요청 시도
+    if (error.message.includes('JSON') || error.message.includes('유효한 JSON 객체가 아님')) {
+        console.log('JSON 오류 발생, 재요청 시도 중...');
+        try {
+            let retryResponse = await axios.post(apiUrl, payload, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000
+            });
+            const retryContent = retryResponse.data.choices[0].message.content;
+            return mergeAndParseResponses([retryContent]);
+        } catch (retryError) {
+            enhancedLogging('재요청 실패:', retryError.message);
+        }
+    }
+
+    return getFallbackResponse(error, allResponses.join(''));
+  }
+}
+
+// GPT 월간 응답 생성
+async function getGPTmonthlyResponse(dietData, userData, dailyAerobics, dailyAnaerobics) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is not set');
+  }
+
+  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+
+
+  const dailymonthlyPrompt = `
+You are an AI specializing in nutrition, food, and exercise analysis. Analyze the report data and provide a structured summary in the following JSON format:
+
+{
+    "식단 피드백": "",
+    "운동 피드백": ""
+}
+
+You will provide monthly feedback on diet and exercise.
+
+Given the user's info, monthly diet, and exercise data, provide feedback based on reportData. Do not alter the JSON structure.
+
+reportData:
+
+Include muscle mass, BMI, body fat percentage, and BMR if available; otherwise, provide feedback without them.
+
+Consider user's birth date (age), gender, and weight to give daily total calorie, protein, and carb intake feedback.
+
+Provide feedback based on the user's monthly aerobic and anaerobic exercise data, considering gender and weight.
+
+If there's only aerobic or anaerobic exercise data, give feedback based on the available data. If no exercise data, provide brief exercise advice.
+
+Summarize each feedback within 300 characters.
+
+you must following writing style and use Korean!
+
+writing style: Informal, Friendly, Humorous
+`;
+
+const reportData = {
+  "사용자 성별": userData.userGender,
+  "사용자 생년월일": userData.userBirth,
+  "사용자 체중": userData.userWeight,
+  "사용자 골격근량": userData.userMuscleMass,
+  "사용자 BMI": userData.userBmi,
+  "사용자 체지방률": userData.userBodyFatPercentage,
+  "사용자 기초대사량": userData.userBmr,
+  "주간 식단 정보": dietData,
+  "일간 유산소 운동 정보": dailyAerobics,
+  "일간 무산소 운동 정보": dailyAnaerobics
+};
+
+const payload = {
+  model: "gpt-4o",
+  messages: [
+    { role: "system", content: dailymonthlyPrompt },
+    { role: "user", content: JSON.stringify(reportData) }
+  ],
+  max_tokens: 1000,
+  response_format: { type: "json_object" }
+};
+
+  let allResponses = [];
+
+  try {
+      let isComplete = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (!isComplete && retryCount < maxRetries) {
+          try {
+              const response = await axios.post(apiUrl, payload, {
+                  headers: {
+                      'Authorization': `Bearer ${apiKey}`,
+                      'Content-Type': 'application/json'
+                  },
+                  timeout: 30000 // 60 seconds timeout
               });
 
               if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message) {

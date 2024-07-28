@@ -19,7 +19,6 @@ app.use(cors({
   // origin: 'https://live-healthy-die-healthy.github.io', // 허용할 출처
 }));
 
-app.use(express.json());
 
 app.use('/', routes);
 app.use('/', routes2);
@@ -178,7 +177,7 @@ await MonthlyReport.bulkCreate([
     userId: '1234',
     nextExercise: 'Jog daily',
     nextDiet: 'Less sugar',
-    date: new Date('2024-06-01'),
+    date: new Date('2023-11-01'),
     meanTraining: 45,
     meanCalories: 2000,
     dietFeedback: 'Fair',
