@@ -970,9 +970,10 @@ const payload = {
     { role: "user", content: JSON.stringify(reportData) }
   ],
   max_tokens: 1000,
+  response_format: { type: "json_object" }
 };
 
-
+console.log("payload : ", payload);
 
   let allResponses = [];
 
@@ -1106,6 +1107,7 @@ const payload = {
     { role: "user", content: JSON.stringify(reportData) }
   ],
   max_tokens: 1000,
+  response_format: { type: "json_object" }
 };
 
   let allResponses = [];
