@@ -144,18 +144,18 @@ await WeeklyReport.bulkCreate([
     meanCalories: 2000,
     dietFeedback: 'Keep up the good work',
     exerciseFeedback: 'Keep up the good work',
-    date: new Date('2024-07-18')
+    date: new Date('2024-07-01')
   },
   {
     weeklyReportId: 2,
-    userId: 'test1',
+    userId: '1234',
     nextExercise: 'Run 5k',
     nextDiet: 'More vegetables',
     meanExercise: 45,
     meanCalories: 1800,
     dietFeedback: 'You can do better',
     exerciseFeedback: 'Keep up the good work',
-    date: new Date('2024-07-18')
+    date: new Date('2024-07-08')
   }
 ]);
 console.log('WeeklyReport added');
@@ -167,7 +167,7 @@ await MonthlyReport.bulkCreate([
     userId: '1234',
     nextExercise: 'Run 5k',
     nextDiet: 'More vegetables',
-    date: new Date('2024-01-18'),
+    date: new Date('2024-01-01'),
     meanTraining: 60,
     meanCalories: 2000,
     dietFeedback: 'Excellent',
@@ -178,7 +178,7 @@ await MonthlyReport.bulkCreate([
     userId: '1234',
     nextExercise: 'Jog daily',
     nextDiet: 'Less sugar',
-    date: new Date('2024-07-18'),
+    date: new Date('2023-11-01'),
     meanTraining: 45,
     meanCalories: 2000,
     dietFeedback: 'Fair',

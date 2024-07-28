@@ -834,7 +834,7 @@ router.post('/weeklyReportDate', async (req, res) => {
     console.log('startDate:', startDate);
     console.log('endDate:', endDate);
 
-    const dailyReports = await DailyReport.findAll({
+    const dailyReports = await WeeklyReport.findAll({
       where: {
         userId,
         date: {
@@ -880,7 +880,7 @@ router.post('/monthlyReportDate', async (req, res) => {
     console.log('startDate:', startDate);
     console.log('endDate:', endDate);
 
-    const dailyReports = await DailyReport.findAll({
+    const dailyReports = await MonthlyReport.findAll({
       where: {
         userId,
         date: {
