@@ -731,6 +731,11 @@ router.post('/friendRequest', async (req, res) => {
       return res.status(400).json({ error: 'Both userId and to_user_id are required' });
   }
 
+  // 자기 자신에게 친구 요청을 보낼 수 없음
+  if (userId === to_user_id) {
+      return res.status(400).json({ success: false, message: '자기 자신에게 친구 요청을 보낼 수 없습니다.' });
+  }
+
   try {
       // to_user_id가 DB에 존재하는지 확인
       const userExists = await User.findOne({ where: { userId: to_user_id } });
@@ -741,12 +746,12 @@ router.post('/friendRequest', async (req, res) => {
 
       // 이미 친구 요청을 보낸 상태인지 확인
       const existingFriendRequest = await Friend.findOne({
-        where: { userId, to_user_id }
-    });
+          where: { userId, to_user_id }
+      });
 
-    if (existingFriendRequest) {
-        return res.status(200).json({ success: false, message: '이미 친구 요청을 보낸 사용자입니다.' });
-    }
+      if (existingFriendRequest) {
+          return res.status(200).json({ success: false, message: '이미 친구 요청을 보낸 사용자입니다.' });
+      }
 
       // 친구 요청 생성
       const newFriendRequest = await Friend.create({
@@ -763,6 +768,7 @@ router.post('/friendRequest', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 // /showFriendRequest 친구 추가 요청 보기
 router.post('/showFriendRequest', async (req, res) => {
