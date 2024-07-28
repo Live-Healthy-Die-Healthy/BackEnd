@@ -1,7 +1,9 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const { Sequelize, ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, ExerciseScrap } = require('../index');
 
 const router = express.Router();
+router.use(express.json());
 
 // 모든 ExerciseList 정보 가져오기 (POST 요청으로 변경)
 router.post('/exerciseList', async (req, res) => {
