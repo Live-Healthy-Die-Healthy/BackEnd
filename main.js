@@ -19,7 +19,6 @@ app.use(cors({
   // origin: 'https://live-healthy-die-healthy.github.io', // 허용할 출처
 }));
 
-// 라우터 사용 시에도 동일하게 설정
 app.use(express.urlencoded({
   limit:"100mb",
   extended: true, // true로 변경
