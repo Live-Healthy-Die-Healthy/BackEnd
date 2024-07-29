@@ -113,6 +113,7 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
             menuCarbo: food.영양정보.탄수화물 / 100,
             menuProtein: food.영양정보.단백질 / 100,
             menuFat: food.영양정보.지방 / 100,
+            menuGI: food.영양정보.GI지수 ,
           });
         }
 
@@ -233,7 +234,8 @@ const basePrompt = `
                 "칼로리": 0,
                 "탄수화물": 0,
                 "단백질": 0,
-                "지방": 0
+                "지방": 0,
+                "GI지수": 0
             },
             "주요영양소": ""
         }

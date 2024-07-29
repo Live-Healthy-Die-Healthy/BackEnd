@@ -12,7 +12,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.05,
     menuProtein: 0.01,
     menuFat: 0.1,
-    menuGI: 0.22
+    menuGI: 22
   },
   {
     menuId: 2,
@@ -22,7 +22,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0,
     menuProtein: 0.23,
     menuFat: 0.012,
-    menuGI: 0.45
+    menuGI: 45
   },
   {
     menuId: 3,
@@ -32,7 +32,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0,
     menuProtein: 0.2,
     menuFat: 0.06,
-    menuGI: 0.47
+    menuGI: 47
   },
   {
     menuId: 4,
@@ -42,7 +42,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.01,
     menuProtein: 0.26,
     menuFat: 0.01,
-    menuGI: 0.4
+    menuGI: 40
   },
   {
     menuId: 5,
@@ -52,7 +52,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.03,
     menuProtein: 0.09,
     menuFat: 0.05,
-    menuGI: 0.42
+    menuGI: 42
   },
   {
     menuId: 6,
@@ -62,7 +62,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.0,
     menuProtein: 0.22,
     menuFat: 0.05,
-    menuGI: 0.45
+    menuGI: 45
   },
   {
     menuId: 7,
@@ -72,7 +72,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.0,
     menuProtein: 0.22,
     menuFat: 0.03,
-    menuGI: 0.45
+    menuGI: 45
   },
   {
     menuId: 8,
@@ -82,7 +82,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.012,
     menuProtein: 0.126,
     menuFat: 0.106,
-    menuGI: 0.6
+    menuGI: 60
   },
   {
     menuId: 9,
@@ -92,7 +92,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.114,
     menuProtein: 0.003,
     menuFat: 0.002,
-    menuGI: 0.36
+    menuGI: 36
   },
   {
     menuId: 10,
@@ -102,7 +102,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.2,
     menuProtein: 0.01,
     menuFat: 0.004,
-    menuGI: 0.55
+    menuGI: 55
   },
   {
     menuId: 11,
@@ -112,7 +112,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.17,
     menuProtein: 0.016,
     menuFat: 0.0,
-    menuGI: 0.55
+    menuGI: 55
   },
   {
     menuId: 12,
@@ -122,7 +122,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.02,
     menuProtein: 0.02,
     menuFat: 0.15,
-    menuGI: 0.27
+    menuGI: 27
   },
   {
     menuId: 13,
@@ -132,7 +132,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.05,
     menuProtein: 0.03,
     menuFat: 0.01,
-    menuGI: 0.26
+    menuGI: 26
   },
   {
     menuId: 14,
@@ -142,7 +142,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.12,
     menuProtein: 0.007,
     menuFat: 0.003,
-    menuGI: 0.34
+    menuGI: 34
   },
   {
     menuId: 15,
@@ -152,7 +152,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.03,
     menuProtein: 0.01,
     menuFat: 0.002,
-    menuGI: 0.3
+    menuGI: 30
   },
   {
     menuId: 16,
@@ -162,7 +162,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.05,
     menuProtein: 0.11,
     menuFat: 0.09,
-    menuGI: 0.11
+    menuGI: 11
   },
   {
     menuId: 17,
@@ -172,7 +172,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.32,
     menuProtein: 0.03,
     menuFat: 0.007,
-    menuGI: 0.56
+    menuGI: 56
   },
   {
     menuId: 18,
@@ -182,7 +182,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.03,
     menuProtein: 0.017,
     menuFat: 0.002,
-    menuGI: 0.15
+    menuGI: 15
   },
   {
     menuId: 19,
@@ -192,7 +192,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.257,
     menuProtein: 0.06,
     menuFat: 0.04,
-    menuGI: 0.8
+    menuGI: 80
   },
   {
     menuId: 20,
@@ -202,7 +202,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.26,
     menuProtein: 0.06,
     menuFat: 0.024,
-    menuGI: 0.73
+    menuGI: 73
   },
   {
     menuId: 21,
@@ -212,7 +212,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.1,
     menuProtein: 0.24,
     menuFat: 0.22,
-    menuGI: 0.74
+    menuGI: 74
   },
   {
     menuId: 22,
@@ -222,7 +222,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.27,
     menuProtein: 0.09,
     menuFat: 0.1,
-    menuGI: 0.6
+    menuGI: 60
   },
   {
     menuId: 23,
@@ -232,7 +232,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.046,
     menuProtein: 0.04,
     menuFat: 0.036,
-    menuGI: 0.4
+    menuGI: 40
   },
   {
     menuId: 24,
@@ -242,7 +242,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.003,
     menuProtein: 0.2,
     menuFat: 0.16,
-    menuGI: 0.05
+    menuGI: 5
   },
   {
     menuId: 25,
@@ -252,7 +252,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.011,
     menuProtein: 0.14,
     menuFat: 0.25,
-    menuGI: 0.27
+    menuGI: 27
   },
   {
     menuId: 26,
@@ -262,7 +262,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.1,
     menuProtein: 0.2,
     menuFat: 0.15,
-    menuGI: 0.6
+    menuGI: 60
   },
   {
     menuId: 27,
@@ -272,7 +272,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.09,
     menuProtein: 0.13,
     menuFat: 0.11,
-    menuGI: 0.2
+    menuGI: 20
   },
   {
     menuId: 28,
@@ -282,7 +282,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.096,
     menuProtein: 0.07,
     menuFat: 0.096,
-    menuGI: 0.35
+    menuGI: 35
   },
   {
     menuId: 29,
@@ -292,7 +292,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.025,
     menuProtein: 0.04,
     menuFat: 0.04,
-    menuGI: 0.3
+    menuGI: 30
   },
   {
     menuId: 30,
@@ -302,7 +302,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.03,
     menuProtein: 0.035,
     menuFat: 0.017,
-    menuGI: 0.3
+    menuGI: 30
   },
   {
     menuId: 31,
@@ -312,7 +312,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.15,
     menuProtein: 0.04,
     menuFat: 0.014,
-    menuGI: 0.59
+    menuGI: 59
   },
   {
     menuId: 32,
@@ -322,7 +322,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.27,
     menuProtein: 0.16,
     menuFat: 0.12,
-    menuGI: 0.66
+    menuGI: 66
   },
   {
     menuId: 33,
@@ -332,7 +332,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.27,
     menuProtein: 0.035,
     menuFat: 0.015,
-    menuGI: 0.87
+    menuGI: 87
   },
   {
     menuId: 34,
@@ -342,7 +342,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.11,
     menuProtein: 0.138,
     menuFat: 0.052,
-    menuGI: 0.7
+    menuGI: 70
   },
   {
     menuId: 35,
@@ -352,7 +352,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.23,
     menuProtein: 0.04,
     menuFat: 0.04,
-    menuGI: 0.6
+    menuGI: 60
   },
   {
     menuId: 36,
@@ -361,7 +361,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.006,
     menuProtein: 0.173,
     menuFat: 0.28,
-    menuGI: 0.01
+    menuGI: 1
   },
   {
     menuId: 37,
@@ -371,7 +371,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.38,
     menuProtein: 0.16,
     menuFat: 0.07,
-    menuGI: 0.75
+    menuGI: 75
   }
 
 
