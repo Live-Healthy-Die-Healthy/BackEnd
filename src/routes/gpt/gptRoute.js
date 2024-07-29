@@ -7,22 +7,6 @@ const { User, DietLog, DietLogDetail, MenuList, Analysis } = require('../../inde
 const { Op, Sequelize } = require('sequelize'); 
 const { v4: uuidv4 } = require('uuid');
 
-const bodyParser = require('body-parser');
-
-// 라우터 사용 시에도 동일하게 설정
-router.use(express.urlencoded({
-  limit:"100mb",
-  extended: true, // true로 변경
-}));
-
-router.use(express.json({   
-  limit : "100mb"
-}));
-  
-
-
-
-
 // 이미지 분석 및 식단 기록 추가 라우트
 router.post('/dietImage' , async (req, res) => {
   const { userId, dietType, dietDate, dietImage } = req.body;
