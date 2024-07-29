@@ -897,4 +897,60 @@ router.post('/friendList', async (req, res) => {
   }
 });
 
+router.post('/compareFriend', async (req, res) => {
+  const { userId, friend_id } = req.body;
+
+  if (!userId || !friend_id) {
+    return res.status(400).json({ error: 'userId and friend_id are required' });
+  }
+
+  try {
+    // 유저와 친구가 실제로 친구 관계인지 확인
+    const friendRelation = await Friend.findOne({
+      where: {
+        userId,
+        to_user_id: friend_id,
+        status: 'accepted'
+      }
+    });
+
+    if (!friendRelation) {
+      return res.status(400).json({ error: 'Users are not friends' });
+    }
+
+    // 유저 정보 조회
+    const user = await User.findOne({
+      where: { userId },
+      attributes: ['username', 'userImage']
+    });
+
+    // 친구 정보 조회
+    const friend = await User.findOne({
+      where: { userId: friend_id },
+      attributes: ['username', 'userImage']
+    });
+
+    if (!user || !friend) {
+      return res.status(404).json({ error: 'User or Friend not found' });
+    }
+
+    // 유저와 친구의 정보 반환
+    res.status(200).json({
+      user: {
+        username: user.username,
+        userImage: user.userImage ? Buffer.from(user.userImage).toString('base64') : null
+      },
+      friend: {
+        username: friend.username,
+        userImage: friend.userImage ? Buffer.from(friend.userImage).toString('base64') : null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user or friend data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+module.exports = router;
+
 module.exports = router;

@@ -34,6 +34,10 @@ module.exports = class MenuList extends Sequelize.Model {
         type: DataTypes.DOUBLE,
         allowNull: true,
       },
+      menuGI:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      }
     }, {
       sequelize,
       timestamps: true,

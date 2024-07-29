@@ -162,7 +162,7 @@ router.post('/addExerciseLog', async (req, res) => {
   }
 });
 
-router.post('/ExerciseScrap', async (req, res) => {
+router.post('/exerciseScrap', async (req, res) => {
   const { userId, exerciseId } = req.body;
 
   if (!userId || !exerciseId) {
@@ -170,14 +170,27 @@ router.post('/ExerciseScrap', async (req, res) => {
   }
 
   try {
-    const newUserExercise = await ExerciseScrap.create({
-      userId,
-      exerciseId
+    // 이미 스크랩 되어 있는지 확인
+    const existingScrap = await ExerciseScrap.findOne({
+      where: { userId, exerciseId }
     });
 
-    res.status(201).json(newUserExercise);
+    if (existingScrap) {
+      // 이미 스크랩 되어 있으면 삭제
+      await ExerciseScrap.destroy({
+        where: { userId, exerciseId }
+      });
+      return res.status(200).json({ message: 'Exercise removed from scrap list' });
+    } else {
+      // 스크랩 되어 있지 않으면 추가
+      const newUserExercise = await ExerciseScrap.create({
+        userId,
+        exerciseId
+      });
+      return res.status(201).json(newUserExercise);
+    }
   } catch (error) {
-    console.error('Error adding UserExercise:', error);
+    console.error('Error processing exercise scrap:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
