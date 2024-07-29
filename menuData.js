@@ -242,7 +242,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.003,
     menuProtein: 0.2,
     menuFat: 0.16,
-    menuGI: 0.5
+    menuGI: 0.05
   },
   {
     menuId: 25,
@@ -361,7 +361,7 @@ await MenuList.bulkCreate([
     menuCarbo: 0.006,
     menuProtein: 0.173,
     menuFat: 0.28,
-    menuGI: 0.45
+    menuGI: 0.01
   },
   {
     menuId: 37,
