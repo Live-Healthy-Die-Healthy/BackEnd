@@ -602,6 +602,9 @@ router.post('/dietDetail/:dietType', async (req, res) => {
         dietDetailLogId: detail.dietDetailLogId,
         menuName: detail.menu.menuName,
         calories: parseFloat((detail.quantity * detail.menu.menuCalorie).toFixed(2)),
+        carbo: parseFloat((detail.quantity * detail.menu.menuCarbo).toFixed(2)),
+        protein: parseFloat((detail.quantity * detail.menu.menuProtein).toFixed(2)),
+        fat: parseFloat((detail.quantity * detail.menu.menuFat).toFixed(2)),
         quantity: detail.quantity
       }))
     );
