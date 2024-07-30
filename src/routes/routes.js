@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
 const { kakaoAccessToken } = require('../controllers/loginController')
-const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList, Friend } = require('../index');
+const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList, Friend, CheatDay } = require('../index');
 const { Op, Sequelize } = require('sequelize'); 
 const { Analysis } = require('../index');
 const { v4: uuidv4 } = require('uuid');
@@ -947,6 +947,103 @@ router.post('/compareFriend', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user or friend data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.post('/setCheatDay', async (req, res) => {
+  const { userId, cheatDayDate } = req.body;
+
+  if (!userId || !cheatDayDate) {
+    return res.status(400).json({ error: 'userId and cheatDayDate are required' });
+  }
+
+  try {
+    const newCheatDay = await CheatDay.create({
+      userId,
+      cheatDayDate
+    });
+
+    res.status(201).json(newCheatDay);
+  } catch (error) {
+    console.error('Error setting cheat day:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.post('/getCheatDay', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const cheatDay = await CheatDay.findOne({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!cheatDay) {
+      return res.status(404).json({ error: 'Cheat day not found' });
+    }
+
+    const today = new Date();
+    const cheatDate = new Date(cheatDay.cheatDayDate);
+    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+
+    // 날짜 차이 계산
+    const dateDifference = Math.ceil((cheatDate - startDate) / (1000 * 60 * 60 * 24));
+
+    const dietLogs = await DietLog.findAll({
+      where: {
+        userId,
+        dietDate: {
+          [Op.between]: [startDate, cheatDate]
+        }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
+    });
+
+    const totalCalories = dietLogs.reduce((acc, log) => {
+      return acc + log.details.reduce((total, detail) => {
+        return total + (detail.quantity * detail.menu.menuCalorie);
+      }, 0);
+    }, 0);
+
+    const user = await User.findOne({ where: { userId } });
+    const recommendedDailyCalories = user.userGender === 'Male' ? 2500 : 2000;
+    const totalRecommendedCalories = recommendedDailyCalories * dateDifference;
+
+    let message = "이대로 쭉 고고";
+    if (totalCalories > totalRecommendedCalories) {
+      message = "너무 많이 먹었어요! 조금만 줄여보세요";
+    } else {
+      message = "지금 잘하고 있어요! 이대로 쭉 고고";
+    }
+
+    if (cheatDate.toDateString() === today.toDateString()) {
+      if (totalCalories <= totalRecommendedCalories) {
+        message = "오늘 치팅하세요!";
+      } else {
+        message = "오늘은 치팅 못합니다";
+      }
+    }
+
+    res.json({
+      currentCalories: totalCalories,
+      totalRecommendedCalories,
+      message,
+    });
+  } catch (error) {
+    console.error('Error fetching cheat day info:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
