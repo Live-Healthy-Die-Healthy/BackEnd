@@ -1043,8 +1043,10 @@ router.post('/getCheatDay', async (req, res) => {
 
     const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
 
-    // 날짜 차이 계산
-    const dateDifference = Math.ceil((cheatDate - startDate) / (1000 * 60 * 60 * 24));
+    // 오늘 날짜까지의 일수 계산
+    const daysUntilToday = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    // 치팅데이까지의 일수 계산
+    const daysUntilCheatDay = Math.ceil((cheatDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
     const dietLogs = await DietLog.findAll({
       where: {
@@ -1070,18 +1072,22 @@ router.post('/getCheatDay', async (req, res) => {
     }, 0);
 
     const user = await User.findOne({ where: { userId } });
-    const recommendedDailyCalories = user.userGender === 'Male' ? 2500 : 2000;
-    const totalRecommendedCalories = recommendedDailyCalories * dateDifference;
+    const recommendedDailyCalories = user.recommendedCal;
+
+    // 오늘까지의 누적 권장 칼로리 계산
+    const expectedCaloriesByToday = recommendedDailyCalories * daysUntilToday;
+    // 치팅데이까지의 총 권장 칼로리 계산
+    const totalRecommendedCalories = recommendedDailyCalories * daysUntilCheatDay;
 
     let message = "이대로 쭉 고고";
-    if (totalCalories > totalRecommendedCalories) {
+    if (totalCalories > expectedCaloriesByToday) {
       message = "너무 많이 먹었어요! 조금만 줄여보세요";
     } else {
       message = "지금 잘하고 있어요! 이대로 쭉 고고";
     }
 
     if (cheatDate.toDateString() === today.toDateString()) {
-      if (totalCalories <= totalRecommendedCalories) {
+      if (totalCalories <= expectedCaloriesByToday) {
         message = "오늘 치팅하세요!";
       } else {
         message = "오늘은 치팅 못합니다";
@@ -1090,7 +1096,7 @@ router.post('/getCheatDay', async (req, res) => {
 
     res.json({
       currentCalories: totalCalories,
-      totalRecommendedCalories,
+      totalRecommendedCalories: totalRecommendedCalories,
       message,
       cheatDay: cheatDate.toISOString(),
       needsCheatDaySetup: false
