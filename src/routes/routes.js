@@ -959,12 +959,17 @@ router.post('/setCheatDay', async (req, res) => {
   }
 
   try {
-    const newCheatDay = await CheatDay.create({
-      userId,
-      cheatDayDate
+    const [cheatDay, created] = await CheatDay.findOrCreate({
+      where: { userId },
+      defaults: { cheatDayDate }
     });
 
-    res.status(201).json(newCheatDay);
+    if (!created) {
+      // 이미 존재하는 경우 업데이트
+      await cheatDay.update({ cheatDayDate });
+    }
+
+    res.status(201).json(cheatDay);
   } catch (error) {
     console.error('Error setting cheat day:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -981,15 +986,21 @@ router.post('/getCheatDay', async (req, res) => {
   try {
     const cheatDay = await CheatDay.findOne({
       where: { userId },
-      order: [['createdAt', 'DESC']],
     });
 
-    if (!cheatDay) {
-      return res.status(404).json({ error: 'Cheat day not found' });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let cheatDate = cheatDay ? new Date(cheatDay.cheatDayDate) : null;
+    cheatDate?.setHours(0, 0, 0, 0);
+
+    if (!cheatDay || cheatDate <= today) {
+      return res.json({
+        message: "치팅데이를 설정해주세요!",
+        needsCheatDaySetup: true
+      });
     }
 
-    const today = new Date();
-    const cheatDate = new Date(cheatDay.cheatDayDate);
     const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
 
     // 날짜 차이 계산
@@ -1041,6 +1052,8 @@ router.post('/getCheatDay', async (req, res) => {
       currentCalories: totalCalories,
       totalRecommendedCalories,
       message,
+      cheatDay: cheatDate.toISOString(),
+      needsCheatDaySetup: false
     });
   } catch (error) {
     console.error('Error fetching cheat day info:', error);
