@@ -62,6 +62,7 @@ const initializeApp = async () => {
       userBmi: 23.6,
       userBodyFatPercentage: 15.1,
       userBmr: 1700,
+      recommendedCal: 2700,
       connectedAt: new Date()
     },
     { 
@@ -74,6 +75,7 @@ const initializeApp = async () => {
       userHeight: 170,
       userWeight: 70,
       userGender: 'male',
+      recommendedCal: 2700,
       userImage: null // 필요한 경우 이미지를 추가할 수 있습니다.
     }
   ]);

@@ -63,6 +63,11 @@ module.exports = class User extends Sequelize.Model {
       userBmr: { // 기초대사량
         type: DataTypes.INTEGER,
         allowNull: true,
+      },
+      recommendedCal: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
       }
     }, {
       sequelize,

@@ -377,29 +377,6 @@ router.post('/newDaily', async (req, res) => {
     }
     endDate.setHours(23, 59, 59, 999);
 
-    // 해당 날짜에 이미 DailyReport가 있는지 확인
-    const existingReport = await DailyReport.findOne({
-      where: {
-        userId: userId,
-        date: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
-    });
-
-    if (existingReport) {
-      console.log("존재!");
-      // 이미 존재하는 DailyReport가 있으면 해당 데이터를 반환
-      return res.status(200).json({
-        totalCalories: existingReport.totalCalories,
-        dietFeedback: existingReport.dietFeedback,
-        exerciseFeedback: existingReport.exerciseFeedback,
-        totalCarbo: existingReport.totalCarbo,
-        totalProtein: existingReport.totalProtein,
-        totalFat: existingReport.totalFat
-      });
-    }
-
     // 사용자의 해당 날짜의 다이어트 로그 가져오기
     console.log("생성");
     const dietLogs = await DietLog.findAll({
@@ -567,7 +544,8 @@ router.post('/newDaily', async (req, res) => {
       userMuscleMass: user.userMuscleMass,
       userBmi: user.userBmi,
       userBodyFatPercentage: user.userBodyFatPercentage,
-      userBmr: user.userBmr
+      userBmr: user.userBmr,
+      userRecommendedCal: user.recommendedCal,
     };
     
     if (!user) {
@@ -591,7 +569,10 @@ router.post('/newDaily', async (req, res) => {
       exerciseFeedback: response.newDailyReport.dataValues.exerciseFeedback,
       totalCarbo: response.newDailyReport.dataValues.totalCarbo,
       totalProtein: response.newDailyReport.dataValues.totalProtein,
-      totalFat: response.newDailyReport.dataValues.totalFat
+      totalFat: response.newDailyReport.dataValues.totalFat,
+      recommendedCal: userData.userRecommendedCal,
+      dailyAerobics: dailyAerobics,
+      dailyAnaerobics: dailyAnaerobics,
   });
   } catch (error) {
     console.error(error);

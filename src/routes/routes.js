@@ -55,6 +55,32 @@ router.post('/checkUser', async (req, res) => {
     }
     console.log("imageBuffer: ", imageBuffer);
 
+    const currentYear = new Date().getFullYear();
+    const userAge = currentYear - userBirth;
+
+    // BMR 계산 함수 (Harris-Benedict 방정식)
+    function calculateBMR(weight, height, age, gender) {
+      if (gender === 'male') {
+        return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+    } else if (gender === 'female') {
+        return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+    } else {
+        throw new Error('Invalid gender');
+    }
+  } 
+
+    // TDEE 계산 함수 
+    function calculateTDEE(bmr, activityLevel) {
+       return bmr * activityLevel;
+    }
+
+    // BMR 계산
+    const userBMR = calculateBMR(userWeight, userHeight, userAge, userGender);
+    const activityLevel = 1.55;
+
+    // TDEE 계산 (권장 섭취 칼로리)
+    const recommendedCal = calculateTDEE(userBMR, activityLevel);
+    console.log(`권장 섭취 칼로리: ${recommendedCal.toFixed(2)} kcal/day`);
 
     try {
       // 새로운 사용자 프로필 등록
@@ -71,7 +97,8 @@ router.post('/checkUser', async (req, res) => {
         userBodyFatPercentage,
         userBmr,
         userImage : imageBuffer,
-        connectedAt
+        connectedAt,
+        recommendedCal
       });
       res.status(200).json(newUser);
     } catch (error) {
