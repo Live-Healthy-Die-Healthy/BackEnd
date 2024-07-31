@@ -1107,4 +1107,113 @@ router.post('/getCheatDay', async (req, res) => {
   }
 });
 
+// POST 요청: 특정 사용자의 특정 월의 운동 기록 조회
+router.post('/exerciseCalendar', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+      const inputDate = new Date(date);
+      const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
+      const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+
+      const exerciseLogs = await ExerciseLog.findAll({
+          where: {
+              userId: userId,
+              exerciseDate: {
+                  [Op.between]: [startDate, endDate]
+              }
+          }
+      });
+
+      const responses = await Promise.all(exerciseLogs.map(async (log) => {
+          const exercise = await ExerciseList.findOne({
+              where: { exerciseId: log.exerciseId }
+          });
+
+          let exerciseDetails = {
+              exerciseName: exercise ? exercise.exerciseName : 'Unknown',
+              exerciseDate: log.exerciseDate,
+              exerciseType: log.exerciseType
+          };
+
+          if (log.exerciseType === 'AerobicExercise') {
+              const aerobic = await AerobicExercise.findOne({
+                  where: { exerciseLogId: log.exerciseLogId }
+              });
+              exerciseDetails.distance = aerobic ? aerobic.distance : null;
+          } else if (log.exerciseType === 'AnaerobicExercise') {
+              const anaerobic = await AnaerobicExercise.findOne({
+                  where: { exerciseLogId: log.exerciseLogId }
+              });
+              const weights = JSON.parse(anaerobic.weight);
+              exerciseDetails.set = anaerobic ? weights.length : null;
+              exerciseDetails.weight = anaerobic ? anaerobic.weight : null;
+              exerciseDetails.repetition = anaerobic ? anaerobic.repetition : null;
+          }
+
+          return exerciseDetails;
+      }));
+
+      res.json(responses);
+  } catch (error) {
+      console.error('Error retrieving exercise logs:', error);
+      res.status(500).json({ message: 'Error retrieving exercise logs', error: error.toString() });
+  }
+});
+
+// POST 요청: 특정 사용자의 특정 월의 식단 기록 조회
+router.post('/dietCalender', async (req, res) => {
+  const { userId, date } = req.body;
+
+  try {
+    const inputDate = new Date(date);
+    const startDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1, 0, 0, 0, 0);
+    const endDate = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const dietLogs = await DietLog.findAll({
+      where: {
+        userId: userId,
+        dietDate: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      include: [{
+        model: DietLogDetail,
+        as: 'details',
+        include: [{
+          model: MenuList,
+          as: 'menu'
+        }]
+      }]
+    });
+
+    // 날짜별로 그룹화하여 총 칼로리를 계산
+    const caloriesByDate = dietLogs.reduce((acc, log) => {
+      const logDate = log.dietDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식으로 변환
+      const totalCaloriesForLog = log.details.reduce((total, detail) => {
+        const calories = detail.quantity * detail.menu.menuCalorie;
+        return total + calories;
+      }, 0);
+
+      if (!acc[logDate]) {
+        acc[logDate] = 0;
+      }
+      acc[logDate] += totalCaloriesForLog;
+      return acc;
+    }, {});
+
+    // 응답 형식으로 변환
+    const response = Object.keys(caloriesByDate).map(date => ({
+      date: date,
+      calories: parseFloat(caloriesByDate[date].toFixed(2))
+    }));
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error retrieving diet logs:', error);
+    res.status(500).json({ message: 'Error retrieving diet logs', error: error.toString() });
+  }
+});
+
 module.exports = router;
