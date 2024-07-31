@@ -421,6 +421,23 @@ router.post('/newDaily', async (req, res) => {
 
     console.log("Diet Logs: ", dietLogs);
 
+    const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+    const mealData = {
+      Breakfast: { log: [], cal: 0 },
+      Lunch: { log: [], cal: 0 },
+      Dinner: { log: [], cal: 0 },
+      Snack: { log: [], cal: 0 }
+    };
+
+    dietLogs.forEach(dietLog => {
+      const mealType = dietLog.dietType;
+      dietLog.details.forEach(details => {
+        const calories = details.quantity * details.menu.menuCalorie;
+        mealData[mealType].log.push(details.menu.menuName);
+        mealData[mealType].cal += calories;
+      });
+    });
+
     // 해당 날짜에 섭취한 총 칼로리 계산
     let totalCalories = 0;
     let totalCarbo = 0;
@@ -562,6 +579,13 @@ router.post('/newDaily', async (req, res) => {
     ); 
 
     res.status(200).json({ 
+      breakfastLog: mealData.Breakfast.log,
+      breakfastCal: mealData.Breakfast.cal,
+      lunchLog: mealData.Lunch.log,
+      lunchCal: mealData.Lunch.cal,
+      dinnerLog: mealData.Dinner.log,
+      dinnerCal: mealData.Dinner.cal,
+      snackLog: mealData.Snack.log,
       totalCalories: response.newDailyReport.dataValues.totalCalories,
       dietFeedback: response.newDailyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newDailyReport.dataValues.exerciseFeedback,
@@ -846,12 +870,12 @@ router.post('/newMonthly', async (req, res) => {
 
     dailyReports.forEach(report => {
       if (report.anAeroInfo) {
-        weeklyAnaerobics.push(...report.anAeroInfo);
+        monthlyAnaerobics.push(...report.anAeroInfo);
       }
     });
     dailyReports.forEach(report => {
       if (report.aeroInfo) {
-        weeklyAerobics.push(...report.aeroInfo);
+        monthlyAerobics.push(...report.aeroInfo);
       }
     });
     
