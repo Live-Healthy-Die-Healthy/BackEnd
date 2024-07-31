@@ -54,6 +54,11 @@ module.exports = class WeeklyReport extends Sequelize.Model {
         type: DataTypes.JSON,
         allowNull: true,
       },
+      totalExerciseTime: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      },
       date: {
         type: DataTypes.DATE,
         allowNull: false,

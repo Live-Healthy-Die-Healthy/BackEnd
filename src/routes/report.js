@@ -196,7 +196,7 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
 
 
 // 주간 분석 수행
-async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics) {
+async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics, totalExerciseTime) {
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -232,6 +232,7 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
           anAeroInfo: weeklyAnaerobics,  
           aeroInfo: weeklyAerobics,
           dietInfo: dietData,
+          totalExerciseTime: totalExerciseTime,
         }
       );
       
@@ -498,6 +499,7 @@ router.post('/newDaily', async (req, res) => {
             sets: 0,
             weight: [],
             repetitions: [],
+            exerciseTime: 0,
           };
     
           // 해당 운동 로그에 맞는 운동 정보를 찾습니다.
@@ -514,6 +516,7 @@ router.post('/newDaily', async (req, res) => {
             dailyAnaerobic.sets = anaerobicExercise.set;
             dailyAnaerobic.weight = anaerobicExercise.weight;
             dailyAnaerobic.repetitions = anaerobicExercise.repetition;
+            dailyAnaerobic.exerciseTime = anaerobicExercise.exerciseTime;
           }
     
           dailyAnaerobics.push(dailyAnaerobic);
@@ -680,6 +683,14 @@ router.post('/newWeekly', async (req, res) => {
       }
     });
 
+    const weeklyCal = [];
+
+    dailyReports.forEach(report => {
+      weeklyCal.push(report.totalCalories);
+    });
+
+    console.log("Weekly Calories: ", weeklyCal);
+
     const weeklyAnaerobics = [];
     const weeklyAerobics = [];
 
@@ -693,7 +704,49 @@ router.post('/newWeekly', async (req, res) => {
         weeklyAerobics.push(...report.aeroInfo);
       }
     });
-    
+
+    // 유산소 운동과 근력 운동 시간을 저장할 변수
+    let totalAerobicTime = 0;
+    let totalAnaerobicTime = {
+      chest: 0,
+      arms: 0, // 팔
+      core: 0, // 코어
+      shoulders: 0, // 어깨
+      back: 0,
+      legs: 0
+    };
+
+    // 유산소 운동 시간 계산
+    weeklyAerobics.forEach(exercise => {
+      totalAerobicTime += exercise.exerciseTime;
+    });
+
+    // 근력 운동 시간 계산 (부위별로)
+    weeklyAnaerobics.forEach(exercise => {
+      const exercisePart = exercise.exercisePart.toLowerCase(); // 소문자로 변환하여 부위 비교
+      if (totalAnaerobicTime.hasOwnProperty(exercisePart)) {
+        totalAnaerobicTime[exercisePart] += exercise.exerciseTime;
+      }
+    });
+
+    // 전체 근력 운동 시간 계산
+    const totalAnaerobicTimeSum = Object.values(totalAnaerobicTime).reduce((sum, time) => sum + time, 0);
+    const totalExerciseTime = totalAerobicTime + totalAnaerobicTimeSum;
+
+    // 비율 계산
+    const aerobicRatio = (totalAerobicTime / totalExerciseTime) * 100;
+    const anaerobicRatio = {
+      chest: (totalAnaerobicTime.chest / totalExerciseTime) * 100,
+      arms: (totalAnaerobicTime.arms / totalExerciseTime) * 100, // 팔
+      core: (totalAnaerobicTime.core / totalExerciseTime) * 100, // 코어
+      shoulders: (totalAnaerobicTime.shoulders / totalExerciseTime) * 100, // 어깨
+      back: (totalAnaerobicTime.back / totalExerciseTime) * 100,
+      legs: (totalAnaerobicTime.legs / totalExerciseTime) * 100
+    };
+    // 결과 출력 (디버깅용)
+    console.log("Aerobic Ratio: ", aerobicRatio);
+    console.log("Anaerobic Ratio: ", anaerobicRatio);
+
     const meanValues = await calculateWeeklyAverages(userId, date);
     
       // 객체에서 값 추출
@@ -734,7 +787,7 @@ router.post('/newWeekly', async (req, res) => {
     console.log("Daily Reports: ", dailyReports);
 
     const response = await performWeeklyAnalysis(userId, date, dietData, userData, 
-      weeklyAerobics, weeklyAnaerobics
+      weeklyAerobics, weeklyAnaerobics, totalExerciseTime
   ); 
 
     // 응답에서 주의 첫 날인 월요일 날짜를 포함
@@ -744,7 +797,11 @@ router.post('/newWeekly', async (req, res) => {
       exerciseFeedback: response.newWeeklyReport.dataValues.exerciseFeedback,
       meanCarbo: response.newWeeklyReport.dataValues.meanCarbo,
       meanProtein: response.newWeeklyReport.dataValues.meanProtein,
-      meanFat: response.newWeeklyReport.dataValues.meanFat
+      meanFat: response.newWeeklyReport.dataValues.meanFat,
+      weeklyCal: weeklyCal,
+      totalTraining: totalExerciseTime,
+      anaerobicRatio: anaerobicRatio,
+      aerobicRatio: aerobicRatio,
   });
   } catch (error) {
     console.error('Error retrieving weekly report:', error);
@@ -820,22 +877,6 @@ router.post('/newMonthly', async (req, res) => {
     console.log("Start Date: ", startDate);
     console.log("End Date: ", endDate);
 
-    const existingReport = await MonthlyReport.findOne({
-      where: {
-        userId: userId,
-        date: {
-          [Op.between]: [startDate, endDate]
-        }
-      }
-    });
-
-    if (existingReport) {
-      console.log("존재!");
-      // 이미 존재하는 MonthlyReport가 있으면 해당 데이터를 반환
-      existingReport.date = startDate;  // 수정된 부분: 응답에 달의 첫 날을 포함하도록 설정
-      return res.status(200).json(existingReport);
-    }
-
     // 사용자의 해당 주의 DailyReport 찾기
     const dailyReports = await DailyReport.findAll({
       where: {
@@ -859,6 +900,18 @@ router.post('/newMonthly', async (req, res) => {
         monthlyAerobics.push(...report.aeroInfo);
       }
     });
+
+    let totalExerciseTime = 0;
+
+    monthlyAnaerobics.forEach(exercise => {
+      totalExerciseTime += exercise.exerciseTime;
+    });
+
+    monthlyAerobics.forEach(exercise => {
+      totalExerciseTime += exercise.exerciseTime;
+    });
+
+    console.log("Total Exercise Time: ", totalExerciseTime);
     
     const meanValues = await calculateMonthlyAverages(userId, date);
     
@@ -910,7 +963,8 @@ router.post('/newMonthly', async (req, res) => {
       exerciseFeedback: response.newMonthlyReport.dataValues.exerciseFeedback,
       meanCarbo: response.newMonthlyReport.dataValues.meanCarbo,
       meanProtein: response.newMonthlyReport.dataValues.meanProtein,
-      meanFat: response.newMonthlyReport.dataValues.meanFat
+      meanFat: response.newMonthlyReport.dataValues.meanFat,
+      totalExerciseTime,
   });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
