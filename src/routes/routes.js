@@ -44,7 +44,7 @@ router.post('/checkUser', async (req, res) => {
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
 
     const connectedAt = new Date();
-    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender,  userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body;
+    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender,  userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body.profileData;
     const username = userNickname;
     console.log("userImage: ", userImage);
 
