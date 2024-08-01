@@ -82,45 +82,36 @@ const calculateMonthlyAverages = async (userId, date) => {
   const startDate = getFirstDayOfMonth(date);
   const endDate = getLastDayOfMonth(date);
 
-  console.log("startDate: ", startDate);
-  console.log("endDate: ", endDate);
-
-  try {
-    const dailyReports = await DailyReport.findAll({
-      where: {
-        userId: userId,
-        date: {
-          [Op.between]: [startDate, endDate]
-        }
+  const dailyReports = await DailyReport.findAll({
+    where: {
+      userId: userId,
+      date: {
+        [Op.between]: [startDate, endDate]
       }
-    });
+    }
+  });
 
-    const totalValues = dailyReports.reduce((acc, report) => {
-      acc.totalCalories += report.totalCalories;
-      acc.totalCarbo += report.totalCarbo;
-      acc.totalProtein += report.totalProtein;
-      acc.totalFat += report.totalFat;
-      return acc;
-    }, { totalCalories: 0, totalCarbo: 0, totalProtein: 0, totalFat: 0 });
-
-    console.log("total cal: ",totalValues.totalCalories);
-    console.log("total car: ",totalValues.totalCarbo);
-    console.log("total pro: ",totalValues.totalProtein);
-    console.log("total fat: ",totalValues.totalFat);
-
-    const reportCount = dailyReports.length;
-    const meanValues = {
-      meanCalories: reportCount ? totalValues.totalCalories / reportCount : 0,
-      meanCarbo: reportCount ? totalValues.totalCarbo / reportCount : 0,
-      meanProtein: reportCount ? totalValues.totalProtein / reportCount : 0,
-      meanFat: reportCount ? totalValues.totalFat / reportCount : 0
-    };
-
-    return meanValues;
-  } catch (error) {
-    console.error('Error calculating weekly averages:', error);
-    throw error;
+  if (dailyReports.length === 0) {
+    return { meanCalories: 0, meanCarbo: 0, meanProtein: 0, meanFat: 0 };
   }
+
+  const totalValues = dailyReports.reduce((acc, report) => {
+    acc.totalCalories += report.totalCalories;
+    acc.totalCarbo += report.totalCarbo;
+    acc.totalProtein += report.totalProtein;
+    acc.totalFat += report.totalFat;
+    return acc;
+  }, { totalCalories: 0, totalCarbo: 0, totalProtein: 0, totalFat: 0 });
+
+  const reportCount = dailyReports.length;
+  const meanValues = {
+    meanCalories: reportCount ? totalValues.totalCalories / reportCount : 0,
+    meanCarbo: reportCount ? totalValues.totalCarbo / reportCount : 0,
+    meanProtein: reportCount ? totalValues.totalProtein / reportCount : 0,
+    meanFat: reportCount ? totalValues.totalFat / reportCount : 0
+  };
+
+  return meanValues;
 };
 
 
@@ -135,6 +126,46 @@ function getLastDayOfMonth(date) {
   const d = new Date(date);
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
+
+// 직전 월의 데이터를 가져오는 함수
+const getPreviousMonthData = async (userId, date) => {
+  const currentDate = new Date(date);
+  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const firstDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
+  const lastDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
+
+  const previousMonthReports = await MonthlyReport.findAll({
+    where: {
+      userId: userId,
+      date: {
+        [Op.between]: [firstDayOfPreviousMonth, lastDayOfPreviousMonth]
+      }
+    },
+    order: [['date', 'DESC']]
+  });
+
+  if (previousMonthReports.length > 0) {
+    return previousMonthReports[0];
+  } else {
+    // 기본값을 0으로 설정
+    return {
+      userWeight: 0,
+      userBodyFatPercentage: 0,
+      userBmi: 0,
+      userMuscleMass: 0
+    };
+  }
+};
+
+// 변화를 계산하는 함수
+const calculateChanges = (previousData, currentData) => {
+  return {
+    weightChange: currentData.userWeight - previousData.userWeight,
+    bodyFatChange: currentData.userBodyFatPercentage - previousData.userBodyFatPercentage,
+    bmiChange: currentData.userBmi - previousData.userBmi,
+    muscleMassChange: currentData.userMuscleMass - previousData.userMuscleMass,
+  };
+};
 
 // 일간 분석 수행
 async function performDailyAnalysis(userId, date, dietData, userData, dailyAerobics, dailyAnaerobics) {
@@ -936,24 +967,21 @@ router.post('/newMonthly', async (req, res) => {
   const { userId, date } = req.body;
 
   try {
-    // 입력된 날짜를 기준으로 달의 시작과 끝 설정
     const inputDate = new Date(date);
     if (isNaN(inputDate)) {
       throw new Error('Invalid date format');
     }
 
-    // 달의 시작 계산
-    const startDate = getFirstDayOfMonth(date)
+    const startDate = getFirstDayOfMonth(date);
     startDate.setUTCHours(0, 0, 0, 0);
 
-    // 달의 끝 계산
-    const endDate = getLastDayOfMonth(date)
+    const endDate = getLastDayOfMonth(date);
     endDate.setUTCHours(23, 59, 59, 999);
 
     console.log("Start Date: ", startDate);
     console.log("End Date: ", endDate);
 
-    // 사용자의 해당 주의 DailyReport 찾기
+    // 사용자의 해당 달의 DailyReport 찾기
     const dailyReports = await DailyReport.findAll({
       where: {
         userId: userId,
@@ -963,6 +991,10 @@ router.post('/newMonthly', async (req, res) => {
       }
     });
 
+    if (dailyReports.length === 0) {
+      return res.status(400).json({ message: 'No daily reports found for this month' });
+    }
+
     const monthlyAnaerobics = [];
     const monthlyAerobics = [];
 
@@ -970,35 +1002,23 @@ router.post('/newMonthly', async (req, res) => {
       if (report.anAeroInfo) {
         monthlyAnaerobics.push(...report.anAeroInfo);
       }
-    });
-    dailyReports.forEach(report => {
       if (report.aeroInfo) {
         monthlyAerobics.push(...report.aeroInfo);
       }
     });
 
     let totalExerciseTime = 0;
-
     monthlyAnaerobics.forEach(exercise => {
       totalExerciseTime += exercise.exerciseTime;
     });
-
     monthlyAerobics.forEach(exercise => {
       totalExerciseTime += exercise.exerciseTime;
     });
 
     console.log("Total Exercise Time: ", totalExerciseTime);
-    
+
     const meanValues = await calculateMonthlyAverages(userId, date);
-    
-      // 객체에서 값 추출
     const { meanCalories, meanCarbo, meanProtein, meanFat } = meanValues;
-    
-      // 여기서 meanCalories, meanCarbo, meanProtein, meanFat 변수를 필요에 맞게 사용
-    console.log('Mean Calories:', meanCalories);
-    console.log('Mean Carbohydrates:', meanCarbo);
-    console.log('Mean Protein:', meanProtein);
-    console.log('Mean Fat:', meanFat);
 
     const dietData = {
       meanCalories,
@@ -1007,15 +1027,14 @@ router.post('/newMonthly', async (req, res) => {
       meanFat
     };
 
-
     const user = await User.findOne({
       where: { userId: userId }
     });
-    
+
     if (!user) {
       throw new Error('User not found');
     }
-    
+
     const userData = {
       userGender: user.userGender,
       userBirth: user.userBirth,
@@ -1026,27 +1045,30 @@ router.post('/newMonthly', async (req, res) => {
       userBmr: user.userBmr
     };
 
-    console.log("Daily Reports: ", dailyReports);
+    const previousMonthData = await getPreviousMonthData(userId, date);
+    const changes = calculateChanges(previousMonthData, userData);
 
-    const response = await performMonthlyAnalysis(userId, date, dietData, userData, 
-      monthlyAerobics, monthlyAnaerobics
-  ); 
+    const response = await performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics);
 
-    // 응답에서 주의 첫 날인 월요일 날짜를 포함
-    res.status(200).json({ 
-      meanCalories: response.newMonthlyReport.dataValues.meanCalories,
+    res.status(200).json({
+      meanCalories: meanCalories,
       dietFeedback: response.newMonthlyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newMonthlyReport.dataValues.exerciseFeedback,
-      meanCarbo: response.newMonthlyReport.dataValues.meanCarbo,
-      meanProtein: response.newMonthlyReport.dataValues.meanProtein,
-      meanFat: response.newMonthlyReport.dataValues.meanFat,
-      totalExerciseTime,
-  });
+      meanCarbo: meanCarbo,
+      meanProtein: meanProtein,
+      meanFat: meanFat,
+      weightChangeRate: changes.weightChange,
+      bodyFatChangeRate: changes.bodyFatChange,
+      bmiChangeRate: changes.bmiChange,
+      muscleMassChangeRate: changes.muscleMassChange,
+      totalExerciseTime: totalExerciseTime,
+    });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
     res.status(500).json({ message: 'Error retrieving monthly report', error: error.message });
   }
 });
+
 
 router.post('/dailyReportDate', async (req, res) => {
   const { userId, month } = req.body;
