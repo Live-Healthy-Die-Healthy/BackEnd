@@ -399,15 +399,16 @@ router.post('/newDaily', async (req, res) => {
 
     console.log("Diet Logs: ", dietLogs);
 
-    const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
     const mealData = {
-      Breakfast: { log: [], cal: 0 },
-      Lunch: { log: [], cal: 0 },
-      Dinner: { log: [], cal: 0 },
-      Snack: { log: [], cal: 0 }
+      breakfast: { log: [], cal: 0 },
+      lunch: { log: [], cal: 0 },
+      dinner: { log: [], cal: 0 },
+      snack: { log: [], cal: 0 }
     };
 
     dietLogs.forEach(dietLog => {
+      console.log("dietType: ", dietLog.dietType);
       const mealType = dietLog.dietType;
       dietLog.details.forEach(details => {
         const calories = details.quantity * details.menu.menuCalorie;
@@ -560,13 +561,13 @@ router.post('/newDaily', async (req, res) => {
     ); 
 
     res.status(200).json({ 
-      breakfastLog: mealData.Breakfast.log,
-      breakfastCal: mealData.Breakfast.cal,
-      lunchLog: mealData.Lunch.log,
-      lunchCal: mealData.Lunch.cal,
-      dinnerLog: mealData.Dinner.log,
-      dinnerCal: mealData.Dinner.cal,
-      snackLog: mealData.Snack.log,
+      breakfastLog: mealData.breakfast.log,
+      breakfastCal: mealData.breakfast.cal,
+      lunchLog: mealData.lunch.log,
+      lunchCal: mealData.lunch.cal,
+      dinnerLog: mealData.dinner.log,
+      dinnerCal: mealData.dinner.cal,
+      snackLog: mealData.snack.log,
       totalCalories: response.newDailyReport.dataValues.totalCalories,
       dietFeedback: response.newDailyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newDailyReport.dataValues.exerciseFeedback,
@@ -574,8 +575,8 @@ router.post('/newDaily', async (req, res) => {
       totalProtein: response.newDailyReport.dataValues.totalProtein,
       totalFat: response.newDailyReport.dataValues.totalFat,
       recommendedCal: userData.userRecommendedCal,
-      dailyAerobics: dailyAerobics,
-      dailyAnaerobics: dailyAnaerobics,
+      aeroInfo: dailyAerobics,
+      anAeroInfo: dailyAnaerobics,
   });
   } catch (error) {
     console.error(error);
