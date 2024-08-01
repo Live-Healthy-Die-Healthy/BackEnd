@@ -38,6 +38,43 @@ module.exports = class DailyReport extends Sequelize.Model {
         allowNUull: true,
         defaultValue: 0
       },
+      breakfastLog: {
+        type: DataTypes.JSON, // 아침 식사 로그
+        allowNull: true,
+      },
+      breakfastCal: {
+        type: DataTypes.DOUBLE, // 아침 식사 칼로리
+        allowNull: true,
+      },
+      lunchLog: {
+        type: DataTypes.JSON, // 점심 식사 로그
+        allowNull: true,
+      },
+      lunchCal: {
+        type: DataTypes.DOUBLE, // 점심 식사 칼로리
+        allowNull: true,
+      },
+      dinnerLog: {
+        type: DataTypes.JSON, // 저녁 식사 로그
+        allowNull: true,
+      },
+      dinnerCal: {
+        type: DataTypes.DOUBLE, // 저녁 식사 칼로리
+        allowNull: true,
+      },
+      snackLog: {
+        type: DataTypes.JSON, // 간식 로그
+        allowNull: true,
+      },
+      snackCal: {
+        type: DataTypes.DOUBLE, // 간식 칼로리
+        allowNull: true,
+      },
+      recommendedCal: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      },
       dietFeedback: {
         type: DataTypes.TEXT, // 수정된 부분: STRING에서 TEXT로 변경
         allowNull: true,

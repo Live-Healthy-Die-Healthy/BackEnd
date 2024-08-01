@@ -159,21 +159,28 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
       }
 
       // DailyReport 생성
-      const newDailyReport = await DailyReport.create(
-        {
-          userId,
-          date,
-          totalCalories :dietData.totalCalories,
-          totalCarbo: dietData.totalCarbo,
-          totalProtein: dietData.totalProtein,
-          totalFat: dietData.totalFat,
-          dietFeedback: analysisResult['식단 피드백'],
-          exerciseFeedback: analysisResult['운동 피드백'],
-          anAeroInfo: dailyAnaerobics,  
-          aeroInfo: dailyAerobics,
-          dietInfo: dietData,
-        }
-      );
+      const newDailyReport = await DailyReport.create({
+        userId,
+        date,
+        totalCalories: dietData.totalCalories,
+        totalCarbo: dietData.totalCarbo,
+        totalProtein: dietData.totalProtein,
+        totalFat: dietData.totalFat,
+        dietFeedback: analysisResult["식단 피드백"],
+        exerciseFeedback: analysisResult["운동 피드백"],
+        anAeroInfo: dailyAnaerobics,
+        aeroInfo: dailyAerobics,
+        dietInfo: dietData,
+        recommendedCal: userData.userRecommendedCal,
+        breakfastLog: dietData.breakfastLog, // 아침 데이터 추가
+        breakfastCal: dietData.breakfastCal, // 아침 칼로리 추가
+        lunchLog: dietData.lunchLog,         // 점심 데이터 추가
+        lunchCal: dietData.lunchCal,         // 점심 칼로리 추가
+        dinnerLog: dietData.dinnerLog,       // 저녁 데이터 추가
+        dinnerCal: dietData.dinnerCal,       // 저녁 칼로리 추가
+        snackLog: dietData.snackLog,         // 간식 데이터 추가
+        snackCal: dietData.snackCal,         // 간식 칼로리 추가
+      });
       
 
       console.log(dailyAnaerobics);
@@ -225,6 +232,7 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
           userId,
           date,
           meanCalories,
+          meanCarbo,
           meanProtein,
           meanFat,
           dietFeedback: analysisResult['식단 피드백'],
@@ -232,7 +240,7 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
           anAeroInfo: weeklyAnaerobics,  
           aeroInfo: weeklyAerobics,
           dietInfo: dietData,
-          totalExerciseTime: totalExerciseTime,
+          totalTraining: totalExerciseTime,
         }
       );
       
@@ -287,6 +295,7 @@ async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyA
           meanProtein,
           meanFat,
           meanCarbo,
+          weeklyCal: dietData.weeklyCal,
           dietFeedback: analysisResult['식단 피드백'],
           exerciseFeedback: analysisResult['운동 피드백'],
           anAeroInfo: monthlyAnaerobics,  
@@ -436,7 +445,15 @@ router.post('/newDaily', async (req, res) => {
       totalCalories,
       totalCarbo,
       totalProtein,
-      totalFat
+      totalFat,
+      breakfastLog: mealData.breakfast.log,
+      breakfastCal: mealData.breakfast.cal,
+      lunchLog: mealData.lunch.log,
+      lunchCal: mealData.lunch.cal,
+      dinnerLog: mealData.dinner.log,
+      dinnerCal: mealData.dinner.cal,
+      snackLog: mealData.snack.log,
+      snackCal: mealData.snack.cal,
     };
 
     
@@ -568,6 +585,7 @@ router.post('/newDaily', async (req, res) => {
       dinnerLog: mealData.dinner.log,
       dinnerCal: mealData.dinner.cal,
       snackLog: mealData.snack.log,
+      snackCal: mealData.snack.cal,
       totalCalories: response.newDailyReport.dataValues.totalCalories,
       dietFeedback: response.newDailyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newDailyReport.dataValues.exerciseFeedback,
@@ -710,11 +728,11 @@ router.post('/newWeekly', async (req, res) => {
     let totalAerobicTime = 0;
     let totalAnaerobicTime = {
       chest: 0,
-      arms: 0, // 팔
+      arm: 0, // 팔
       core: 0, // 코어
-      shoulders: 0, // 어깨
+      shoulder: 0, // 어깨
       back: 0,
-      legs: 0
+      leg: 0
     };
 
     // 유산소 운동 시간 계산
@@ -738,11 +756,11 @@ router.post('/newWeekly', async (req, res) => {
     const aerobicRatio = (totalAerobicTime / totalExerciseTime) * 100;
     const anaerobicRatio = {
       chest: (totalAnaerobicTime.chest / totalExerciseTime) * 100,
-      arms: (totalAnaerobicTime.arms / totalExerciseTime) * 100, // 팔
+      arm: (totalAnaerobicTime.arm / totalExerciseTime) * 100, // 팔
       core: (totalAnaerobicTime.core / totalExerciseTime) * 100, // 코어
-      shoulders: (totalAnaerobicTime.shoulders / totalExerciseTime) * 100, // 어깨
+      shoulder: (totalAnaerobicTime.shoulder / totalExerciseTime) * 100, // 어깨
       back: (totalAnaerobicTime.back / totalExerciseTime) * 100,
-      legs: (totalAnaerobicTime.legs / totalExerciseTime) * 100
+      leg: (totalAnaerobicTime.leg / totalExerciseTime) * 100
     };
     // 결과 출력 (디버깅용)
     console.log("Aerobic Ratio: ", aerobicRatio);
@@ -763,7 +781,8 @@ router.post('/newWeekly', async (req, res) => {
       meanCalories,
       meanCarbo,
       meanProtein,
-      meanFat
+      meanFat,
+      weeklyCal
     };
 
 

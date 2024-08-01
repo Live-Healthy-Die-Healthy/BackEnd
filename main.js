@@ -85,40 +85,6 @@ const initializeApp = async () => {
 // MenuList 데이터 추가
 await menuData();
 
-// DietLog 데이터 추가 (7월 18일로 수정)
-await DietLog.bulkCreate([
-  {
-    dietLogId: 1,
-    dietDate: new Date('2024-07-19'),
-    dietType: 'Breakfast',
-    userId: '1234'
-  },
-  {
-    dietLogId: 2,
-    dietDate: new Date('2024-07-19'),
-    dietType: 'Lunch',
-    userId: '1234'
-  },
-]);
-console.log('DietLog added');
-
-// DietLogDetail 데이터 추가
-await DietLogDetail.bulkCreate([
-  {
-    dietDetailLogId: 1,
-    quantity: 100,
-    dietLogId: 1,
-    menuId: 1
-  },
-  {
-    dietDetailLogId: 2,
-    quantity: 100,
-    dietLogId: 2,
-    menuId: 2
-  },
-]);
-console.log('DietLogDetail added');
-
 // DailyReport 데이터 추가
 await DailyReport.bulkCreate([
   {
