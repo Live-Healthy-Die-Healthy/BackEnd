@@ -158,6 +158,32 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
         continue;
       }
 
+      const { isValid: isExerciseDataValid, maxSpeed, maxEndurance } = validateExerciseData(userData, dailyAerobics);
+
+      // 운동 피드백 초기화
+      let exerciseFeedback = analysisResult["운동 피드백"];
+
+      if (!isExerciseDataValid) {
+        // 유효하지 않은 경우 피드백 설정
+        const invalidLog = dailyAerobics.find(log => {
+          const speed = log.distance / (log.exerciseTime / 60);
+          return log.exerciseTime > maxEndurance || speed > maxSpeed;
+        });
+      
+        if (invalidLog) {
+          const speed = invalidLog.distance / (invalidLog.exerciseTime / 60);
+          console.log("speed: ", speed);
+          exerciseFeedback = JSON.stringify({
+            "운동 피드백": `비정상적인 데이터 감지! 속도(${speed.toFixed(2)} km/h) 또는 시간(${invalidLog.exerciseTime} 분)가 비정상적으로 높습니다.`
+          });
+      
+          // JSON 문자열을 파싱하여 원하는 형식으로 저장
+          const parsedFeedback = JSON.parse(exerciseFeedback);
+          exerciseFeedback = `${parsedFeedback["운동 피드백"]}`;
+        }
+      }
+
+
       // DailyReport 생성
       const newDailyReport = await DailyReport.create({
         userId,
@@ -167,7 +193,7 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
         totalProtein: dietData.totalProtein,
         totalFat: dietData.totalFat,
         dietFeedback: analysisResult["식단 피드백"],
-        exerciseFeedback: analysisResult["운동 피드백"],
+        exerciseFeedback,
         anAeroInfo: dailyAnaerobics,
         aeroInfo: dailyAerobics,
         dietInfo: dietData,
@@ -729,7 +755,7 @@ router.post('/newWeekly', async (req, res) => {
         weeklyCal.push(0);
       }
     });
-    
+
     console.log("Weekly Calories: ", weeklyCal);
 
     const weeklyAnaerobics = [];
@@ -1164,29 +1190,28 @@ async function getGPTDailyResponse(dietData, userData, dailyAerobics, dailyAnaer
 
 
   const dailyBasePrompt = `
-  You are an AI specializing in nutrition, food, and exercise analysis. Analyze the report data and provide a structured summary in the following JSON format:
-  
-  {
-      "식단 피드백": "",
-      "운동 피드백": ""
-  }
-  
-  All analyses are based on the provided reportData. Do not alter the JSON structure.
-  
-  reportData:
-  
-  Include muscle mass, BMI, body fat percentage, and BMR if available; if not, provide feedback without them.
-  
-  Consider user's birth date (age), gender, and weight to give daily total calorie, protein, and carb intake feedback.
-  
-  Provide feedback based on user's daily aerobic and anaerobic exercise data, considering gender and weight.
-  
-  If only one type of exercise data (aerobic or anaerobic) is available, provide feedback based on the available data. If no exercise data, provide brief exercise advice.
-  
-  Summarize each feedback within 500 characters.
-  
-  Writing style: Informal, Friendly, Humorous
-  Language: Korean
+You are an AI specializing in nutrition, food, and exercise analysis. Analyze the report data provided and give a structured summary in the following JSON format:
+
+{
+    "식단 피드백": "",
+    "운동 피드백": ""
+}
+
+Base all analyses on the provided reportData without altering the JSON structure.
+
+reportData will include the following information:
+
+1. User's birth date (age), gender, and weight to provide daily total calorie, protein, and carb intake feedback.
+2. Muscle mass, BMI, body fat percentage, and BMR if available.
+3. User's daily aerobic and anaerobic exercise data, considering gender and weight.
+
+Instructions:
+
+- If only one type of exercise data (aerobic or anaerobic) is available, provide feedback based on the available data.
+- If no exercise data is provided, give brief exercise advice.
+- Summarize each feedback within 500 characters.
+- Use the following writing style: Informal, Friendly, and Humorous.
+- Write in Korean.
   
   Guidelines for feedback:
   - 식단 피드백: 사용자의 성별, 나이, 체중을 고려하여 하루 권장 칼로리, 단백질, 탄수화물 섭취량을 평가하고, 현재 섭취량과 비교하여 조언합니다.
@@ -1194,8 +1219,9 @@ async function getGPTDailyResponse(dietData, userData, dailyAerobics, dailyAnaer
   
   Example feedback:
   {
-      "식단 피드백": "오늘은 칼로리를 좀 더 줄이는 게 좋겠어요! 너무 많이 드셨네요. 단백질 섭취는 아주 훌륭해요!",
-      "운동 피드백": "유산소 운동이 부족해요. 내일은 30분 정도 가볍게 조깅해보는 건 어떨까요? 무산소 운동은 아주 잘하고 계세요!"
+      "식단 피드백": "오늘 왜이리 많이먹었어!! 이 돼지야! 탄수화물좀 줄이고 단백질 섭취는 아주 훌륭해ㅎ!",
+      "운동 피드백": "유산소 운동이 부족해!!. 내일은 30분 정도 가볍게 조깅해보쟈~~ 근력 운동은 아주 잘하고있군 ㅎㅎ! 
+      오늘은 가슴, 등 위주로 했으니 내일은 하체, 어깨를 해보는게 어때?"
   }
   
   reportData:
@@ -1231,7 +1257,6 @@ const reportData =
     "일간 유산소 운동 정보": JSON.stringify(dailyAerobics),
     "일간 무산소 운동 정보": JSON.stringify(dailyAnaerobics)
 };
-
 
 const payload = {
   model: "gpt-4o",
@@ -1585,6 +1610,312 @@ const payload = {
     }
 
     return getFallbackResponse(error, allResponses.join(''));
+  }
+}
+
+function calculateMaxSpeedAndEnduranceJogging(user) {
+  const { userBirth, userWeight, userGender, userRecommendedCal, userBmi, restingHR = 70 } = user;
+
+  // 생년월일을 바탕으로 나이 계산
+  const birthDate = new Date(userBirth);
+  const ageDiffMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+  console.log("userData: ", age, userWeight, userGender, userRecommendedCal, restingHR);
+
+  // 최대 심박수 (HRmax)
+  const maxHR = 220 - age;
+
+  // VO2 Max 계산 (간단한 추정 공식 사용)
+  const vo2Max = 15.3 * (maxHR / restingHR);
+
+  // 최대 MET 값 추정 (VO2 Max의 80% 사용)
+  const maxMET = vo2Max * 0.8 / 3.5;
+
+  // 기본 최대 속도와 지구력
+  let maxSpeed = 10; // 기본 최대 속도 (km/h)
+  let maxEndurance = 60; // 기본 최대 지구력 (분)
+
+  // 나이에 따른 조정
+  if (age < 30) {
+    maxSpeed += 2;
+    maxEndurance += 20;
+  } else if (age > 50) {
+    maxSpeed -= 2;
+    maxEndurance -= 20;
+  }
+
+  // 성별에 따른 조정
+  if (userGender === 'female') {
+    maxSpeed -= 1.5;
+    maxEndurance -= 10;
+  }
+
+  // BMI에 따른 조정
+  if (userBmi > 25) {
+    maxSpeed -= 1.5;
+    maxEndurance -= 10;
+  } else if (userBmi < 18.5) {
+    maxSpeed -= 1;
+    maxEndurance -= 10;
+  }
+
+  // 권장 칼로리에 따른 조정
+  if (userRecommendedCal < 1800) {
+    maxSpeed -= 1;
+    maxEndurance -= 10;
+  } else if (userRecommendedCal > 2500) {
+    maxSpeed += 1;
+    maxEndurance += 10;
+  }
+
+  // MET를 사용한 조정
+  const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 200); // 단위: km/h
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+
+  // 최종적으로 최대 지속 시간 계산
+  maxEndurance = maxMET * 10; // 단위: 분
+
+  return { maxSpeed, maxEndurance };
+}
+
+function calculateMaxSpeedAndEnduranceWalking(user) {
+  const { userBirth, userWeight, userGender, userRecommendedCal, userBmi, restingHR = 70 } = user;
+
+  // 생년월일을 바탕으로 나이 계산
+  const birthDate = new Date(userBirth);
+  const ageDiffMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+  console.log("userData: ", age, userWeight, userGender, userRecommendedCal, restingHR);
+
+  // 최대 심박수 (HRmax)
+  const maxHR = 220 - age;
+
+  // VO2 Max 계산 (간단한 추정 공식 사용)
+  const vo2Max = 15.3 * (maxHR / restingHR);
+
+  // 최대 MET 값 추정 (VO2 Max의 80% 사용)
+  const maxMET = vo2Max * 0.8 / 3.5;
+
+  // 최대 속도와 지구력 기본값
+  let maxSpeed = 6; // 기본 최대 속도 (km/h)
+  let maxEndurance = 120; // 기본 최대 지구력 (분)
+
+  // 나이에 따른 조정
+  if (age < 30) {
+    maxSpeed += 1;
+    maxEndurance += 30;
+  } else if (age > 50) {
+    maxSpeed -= 1;
+    maxEndurance -= 30;
+  }
+
+  // 성별에 따른 조정
+  if (userGender === 'female') {
+    maxSpeed -= 0.5;
+    maxEndurance -= 15;
+  }
+
+  // BMI에 따른 조정
+  if (userBmi > 25) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 15;
+  } else if (userBmi < 18.5) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 15;
+  }
+
+  // 권장 칼로리에 따른 조정
+  if (userRecommendedCal < 1800) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 15;
+  } else if (userRecommendedCal > 2500) {
+    maxSpeed += 0.5;
+    maxEndurance += 15;
+  }
+
+  // MET를 사용한 조정
+  const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 300); // 단위: km/h
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+
+  // 최종적으로 최대 지속 시간 계산
+  maxEndurance = maxMET * 20; // 단위: 분
+
+  return { maxSpeed, maxEndurance };
+}
+
+function calculateMaxSpeedAndEnduranceCycling(user) {
+  const { userBirth, userWeight, userGender, userRecommendedCal, userBmi, restingHR = 70 } = user;
+
+  // 생년월일을 바탕으로 나이 계산
+  const birthDate = new Date(userBirth);
+  const ageDiffMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+  console.log("userData: ", age, userWeight, userGender, userRecommendedCal, restingHR);
+
+  // 최대 심박수 (HRmax)
+  const maxHR = 220 - age;
+
+  // VO2 Max 계산 (간단한 추정 공식 사용)
+  const vo2Max = 15.3 * (maxHR / restingHR);
+
+  // 최대 MET 값 추정 (VO2 Max의 80% 사용)
+  const maxMET = vo2Max * 0.8 / 3.5;
+
+  // 최대 속도와 지구력 기본값
+  let maxSpeed = 25; // 기본 최대 속도 (km/h)
+  let maxEndurance = 90; // 기본 최대 지구력 (분)
+
+  // 나이에 따른 조정
+  if (age < 30) {
+    maxSpeed += 5;
+    maxEndurance += 30;
+  } else if (age > 50) {
+    maxSpeed -= 5;
+    maxEndurance -= 30;
+  }
+
+  // 성별에 따른 조정
+  if (userGender === 'female') {
+    maxSpeed -= 2.5;
+    maxEndurance -= 20;
+  }
+
+  // BMI에 따른 조정
+  if (userBmi > 25) {
+    maxSpeed -= 2.5;
+    maxEndurance -= 20;
+  } else if (userBmi < 18.5) {
+    maxSpeed -= 2.5;
+    maxEndurance -= 20;
+  }
+
+  // 권장 칼로리에 따른 조정
+  if (userRecommendedCal < 1800) {
+    maxSpeed -= 2;
+    maxEndurance -= 20;
+  } else if (userRecommendedCal > 2500) {
+    maxSpeed += 2;
+    maxEndurance += 20;
+  }
+
+  // MET를 사용한 조정
+  const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 100); // 단위: km/h
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+
+  // 최종적으로 최대 지속 시간 계산
+  maxEndurance = maxMET * 10; // 단위: 분
+
+  return { maxSpeed, maxEndurance };
+}
+
+function calculateMaxSpeedAndEnduranceSwimming(user) {
+  const { userBirth, userWeight, userGender, userRecommendedCal, userBmi, restingHR = 70 } = user;
+
+  // 생년월일을 바탕으로 나이 계산
+  const birthDate = new Date(userBirth);
+  const ageDiffMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDiffMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+  console.log("userData: ", age, userWeight, userGender, userRecommendedCal, restingHR);
+
+  // 최대 심박수 (HRmax)
+  const maxHR = 220 - age;
+
+  // VO2 Max 계산 (간단한 추정 공식 사용)
+  const vo2Max = 15.3 * (maxHR / restingHR);
+
+  // 최대 MET 값 추정 (VO2 Max의 80% 사용)
+  const maxMET = vo2Max * 0.8 / 3.5;
+
+  // 최대 속도와 지구력 기본값
+  let maxSpeed = 4; // 기본 최대 속도 (km/h)
+  let maxEndurance = 45; // 기본 최대 지구력 (분)
+
+  // 나이에 따른 조정
+  if (age < 30) {
+    maxSpeed += 1;
+    maxEndurance += 15;
+  } else if (age > 50) {
+    maxSpeed -= 1;
+    maxEndurance -= 15;
+  }
+
+  // 성별에 따른 조정
+  if (userGender === 'female') {
+    maxSpeed -= 0.5;
+    maxEndurance -= 10;
+  }
+
+  // BMI에 따른 조정
+  if (userBmi > 25) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 10;
+  } else if (userBmi < 18.5) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 10;
+  }
+
+  // 권장 칼로리에 따른 조정
+  if (userRecommendedCal < 1800) {
+    maxSpeed -= 0.5;
+    maxEndurance -= 10;
+  } else if (userRecommendedCal > 2500) {
+    maxSpeed += 0.5;
+    maxEndurance += 10;
+  }
+
+  // MET를 사용한 조정
+  const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 400); // 단위: km/h
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+
+  // 최종적으로 최대 지속 시간 계산
+  maxEndurance = maxMET * 5; // 단위: 분
+
+  return { maxSpeed, maxEndurance };
+}
+
+// 유효성 검사 함수
+function validateExerciseData(user, exerciseLogs) {
+  let maxSpeed, maxEndurance;
+
+  if (exerciseLogs.length > 0) {
+    const isValid = exerciseLogs.every(log => {
+      switch (log.exerciseName) {
+        case '조깅':
+          ({ maxSpeed, maxEndurance } = calculateMaxSpeedAndEnduranceJogging(user));
+          break;
+        case '걷기':
+          ({ maxSpeed, maxEndurance } = calculateMaxSpeedAndEnduranceWalking(user));
+          break;
+        case '사이클':
+          ({ maxSpeed, maxEndurance } = calculateMaxSpeedAndEnduranceCycling(user));
+          break;
+        case '수영':
+          ({ maxSpeed, maxEndurance } = calculateMaxSpeedAndEnduranceSwimming(user));
+          break;
+        default:
+          throw new Error(`Unsupported exercise type: ${log.exerciseName}`);
+      }
+
+      console.log("maxSpeed: ", maxSpeed, " maxEndurance: ", maxEndurance);
+
+      const speed = log.distance / (log.exerciseTime / 60); // km/h 단위로 속력 계산
+      if (speed > maxSpeed || log.exerciseTime > maxEndurance) {
+        return false; // 비정상적인 데이터 발견
+      }
+      return true; // 비정상적인 데이터 아님
+    });
+
+    return { isValid, maxSpeed, maxEndurance };
+  } else {
+    throw new Error('No exercise logs provided');
   }
 }
 
