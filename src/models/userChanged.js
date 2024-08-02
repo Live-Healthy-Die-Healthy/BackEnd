@@ -5,11 +5,11 @@ const { Sequelize, DataTypes } = require('sequelize');
 module.exports = class UserChanged extends Sequelize.Model {
   static init(sequelize) {
     return super.init({
-        userChangeId: {
-            type: Sequelize.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
-          },
+    userChangeId: {
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+      },
       userId: {
         type: DataTypes.STRING,
         allowNull: false,

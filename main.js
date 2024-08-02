@@ -138,17 +138,6 @@ console.log('WeeklyReport added');
 // MonthlyReport 데이터 추가
 await MonthlyReport.bulkCreate([
   {
-    monthlyReportId: 1,
-    userId: '1234',
-    nextExercise: 'Run 5k',
-    nextDiet: 'More vegetables',
-    date: new Date('2024-07-01'),
-    meanTraining: 60,
-    meanCalories: 2000,
-    dietFeedback: 'Excellent',
-    exerciseFeedback: 'Outstanding'
-  },
-  {
     monthlyReportId: 2,
     userId: '1234',
     nextExercise: 'Jog daily',
