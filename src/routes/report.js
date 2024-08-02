@@ -1937,7 +1937,7 @@ function validateExerciseData(user, exerciseLogs) {
 
     return { isValid, maxSpeed, maxEndurance };
   } else {
-    throw new Error('No exercise logs provided');
+    return { isValid: true, maxSpeed: null, maxEndurance: null };
   }
 }
 
