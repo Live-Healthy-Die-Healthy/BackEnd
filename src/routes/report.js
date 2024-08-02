@@ -1009,9 +1009,9 @@ router.post('/newMonthly', async (req, res) => {
       }
     });
 
-    if (dailyReports.length === 0) {
-      return res.status(400).json({ message: 'No daily reports found for this month' });
-    }
+    //if (dailyReports.length === 0) {
+    //  return res.status(400).json({ message: 'No daily reports found for this month' });
+    //}
 
     const monthlyAnaerobics = [];
     const monthlyAerobics = [];
