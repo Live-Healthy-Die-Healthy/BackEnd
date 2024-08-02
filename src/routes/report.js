@@ -643,6 +643,7 @@ router.post('/newDaily', async (req, res) => {
       userBodyFatPercentage: user.userBodyFatPercentage,
       userBmr: user.userBmr,
       userRecommendedCal: user.recommendedCal,
+      userImage: user.userImage,
     };
     
     if (!user) {
@@ -671,6 +672,7 @@ router.post('/newDaily', async (req, res) => {
       recommendedCal: userData.userRecommendedCal,
       aeroInfo: dailyAerobics,
       anAeroInfo: dailyAnaerobics,
+      userImage: user.userImage,
   });
   } catch (error) {
     console.error(error);
@@ -902,6 +904,7 @@ router.post('/newWeekly', async (req, res) => {
       userBmi: user.userBmi,
       userBodyFatPercentage: user.userBodyFatPercentage,
       userBmr: user.userBmr,
+      userImage: user.userImage,
     };
 
     console.log("Daily Reports: ", dailyReports);
@@ -930,6 +933,7 @@ router.post('/newWeekly', async (req, res) => {
       totalTraining: totalExerciseTime,
       anaerobicRatio: anaerobicRatio,
       aerobicRatio: aerobicRatio,
+      userImage: user.userImage,
     });
   } catch (error) {
     console.error('Error retrieving weekly report:', error);
@@ -1062,7 +1066,8 @@ router.post('/newMonthly', async (req, res) => {
       userMuscleMass: user.userMuscleMass,
       userBmi: user.userBmi,
       userBodyFatPercentage: user.userBodyFatPercentage,
-      userBmr: user.userBmr
+      userBmr: user.userBmr,
+      userImage: user.userImage,
     };
 
     const previousMonthData = await getPreviousMonthData(userId, date);
@@ -1081,7 +1086,8 @@ router.post('/newMonthly', async (req, res) => {
       bodyFatChangeRate: parseFloat(changes.bodyFatChange.toFixed(1)),
       bmiChangeRate: parseFloat(changes.bmiChange.toFixed(1)),
       muscleMassChangeRate: parseFloat(changes.muscleMassChange.toFixed(1)),
-      totalExerciseTime: parseFloat(totalExerciseTime.toFixed(1))
+      totalExerciseTime: parseFloat(totalExerciseTime.toFixed(1)),
+      userImage: user.userImage,
     });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
