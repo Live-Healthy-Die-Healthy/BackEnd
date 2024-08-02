@@ -962,24 +962,56 @@ router.post('/friendList', async (req, res) => {
   }
 });
 
+const getUserData = async (userId) => {
+  const user = await User.findOne({
+    where: { userId: userId },
+    attributes: ['userWeight', 'userBodyFatPercentage', 'userBmi', 'userMuscleMass']
+  });
+
+  if (user) {
+    return {
+      userWeight: user.userWeight,
+      userBodyFatPercentage: user.userBodyFatPercentage,
+      userBmi: user.userBmi,
+      userMuscleMass: user.userMuscleMass
+    };
+  } else {
+    // 기본값을 0으로 설정
+    return {
+      userWeight: 0,
+      userBodyFatPercentage: 0,
+      userBmi: 0,
+      userMuscleMass: 0
+    };
+  }
+};
+
 const getPreviousMonthData = async (userId, date) => {
+  // 주어진 날짜를 기준으로 이전 달의 첫날과 마지막 날 계산
   const currentDate = new Date(date);
   const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
   const firstDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
   const lastDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
 
-  const previousMonthReports = await MonthlyReport.findAll({
+  // User 모델에서 이전 달 데이터 조회
+  const previousMonthData = await User.findOne({
     where: {
       userId: userId,
-      date: {
+      updatedAt: {
         [Op.between]: [firstDayOfPreviousMonth, lastDayOfPreviousMonth]
       }
     },
-    order: [['date', 'DESC']]
+    attributes: ['userWeight', 'userBodyFatPercentage', 'userBmi', 'userMuscleMass']
   });
 
-  if (previousMonthReports.length > 0) {
-    return previousMonthReports[0];
+  // 데이터 반환
+  if (previousMonthData) {
+    return {
+      userWeight: previousMonthData.userWeight,
+      userBodyFatPercentage: previousMonthData.userBodyFatPercentage,
+      userBmi: previousMonthData.userBmi,
+      userMuscleMass: previousMonthData.userMuscleMass
+    };
   } else {
     // 기본값을 0으로 설정
     return {
@@ -1068,7 +1100,7 @@ router.post('/compareFriend', async (req, res) => {
       const exerciseLogs = await ExerciseLog.findAll({
         where: {
           userId,
-          date: {
+          exerciseDate: {
             [Op.between]: [startDate, endDate]
           }
         },

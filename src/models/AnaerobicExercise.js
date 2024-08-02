@@ -43,4 +43,8 @@ module.exports = class AnaerobicExercise extends Sequelize.Model {
   static associate(models) {
     this.belongsTo(models.ExerciseList, { foreignKey: 'exerciseId', as: 'exercise' });
   }
+
+  static associate(models) {
+    this.belongsTo(models.ExerciseLog, { foreignKey: 'exerciseLogId', as: 'exerciseLog' });
+  }
 }

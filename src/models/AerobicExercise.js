@@ -31,5 +31,9 @@ module.exports = class AerobicExercise extends Sequelize.Model {
       collate: 'utf8_general_ci',
     });
   }
+
+  static associate(models) {
+    this.belongsTo(models.ExerciseLog, { foreignKey: 'exerciseLogId', as: 'exerciseLog' });
+  }
   
 }
