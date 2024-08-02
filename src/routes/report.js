@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
-const { User, AerobicExercise, AnaerobicExercise, ExerciseLog, ExerciseList, DietLogDetail, DietLog, DailyReport, MenuList, Sequelize, WeeklyReport, MonthlyReport } = require('../index');
+const { User, AerobicExercise, AnaerobicExercise, ExerciseLog, ExerciseList, DietLogDetail, DietLog, DailyReport, MenuList, Sequelize, WeeklyReport, MonthlyReport, UserChanged } = require('../index');
 const { Op } = Sequelize; // Op를 Sequelize에서 가져오기
 
 const bodyParser = require('body-parser');
@@ -130,24 +130,27 @@ function getLastDayOfMonth(date) {
 // 직전 월의 데이터를 가져오는 함수
 const getPreviousMonthData = async (userId, date) => {
   const currentDate = new Date(date);
-  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-  const firstDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
-  const lastDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
+  const previousMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const previousMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
 
-  const previousMonthReports = await MonthlyReport.findAll({
+  const latestPreviousData = await UserChanged.findOne({
     where: {
       userId: userId,
-      date: {
-        [Op.between]: [firstDayOfPreviousMonth, lastDayOfPreviousMonth]
+      updatedAt: {
+        [Op.between]: [previousMonthStart, previousMonthEnd]
       }
     },
-    order: [['date', 'DESC']]
+    order: [['updatedAt', 'DESC']]
   });
 
-  if (previousMonthReports.length > 0) {
-    return previousMonthReports[0];
+  if (latestPreviousData) {
+    return {
+      userWeight: latestPreviousData.userWeight,
+      userBodyFatPercentage: latestPreviousData.userBodyFatPercentage,
+      userBmi: latestPreviousData.userBmi,
+      userMuscleMass: latestPreviousData.userMuscleMass
+    };
   } else {
-    // 기본값을 0으로 설정
     return {
       userWeight: 0,
       userBodyFatPercentage: 0,
@@ -371,7 +374,7 @@ async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyA
           aeroInfo: monthlyAerobics,
           dietInfo: dietData,
           weightChangeRate: changes.weightChange,
-          bodyFatChangeRate: changes.bodyFatChange,
+          bodyFatChangeRate: parseFloat(changes.bodyFatChange.toFixed(1)),
           bmiChangeRate: changes.bmiChange,
           muscleMassChangeRate: changes.muscleMassChange,
         }
@@ -979,7 +982,6 @@ router.post('/monthly', async (req, res) => {
   }
 });
 
-
 // 월간 레포트 생성
 router.post('/newMonthly', async (req, res) => {
   const { userId, date } = req.body;
@@ -1039,10 +1041,10 @@ router.post('/newMonthly', async (req, res) => {
     const { meanCalories, meanCarbo, meanProtein, meanFat } = meanValues;
 
     const dietData = {
-      meanCalories,
-      meanCarbo,
-      meanProtein,
-      meanFat
+      meanCalories: parseFloat(meanCalories.toFixed(1)),
+      meanCarbo: parseFloat(meanCarbo.toFixed(1)),
+      meanProtein: parseFloat(meanProtein.toFixed(1)),
+      meanFat: parseFloat(meanFat.toFixed(1))
     };
 
     const user = await User.findOne({
@@ -1069,17 +1071,17 @@ router.post('/newMonthly', async (req, res) => {
     const response = await performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics, changes);
 
     res.status(200).json({
-      meanCalories: meanCalories,
+      meanCalories: parseFloat(meanCalories.toFixed(1)),
       dietFeedback: response.newMonthlyReport.dataValues.dietFeedback,
       exerciseFeedback: response.newMonthlyReport.dataValues.exerciseFeedback,
-      meanCarbo: meanCarbo,
-      meanProtein: meanProtein,
-      meanFat: meanFat,
-      weightChangeRate: changes.weightChange,
-      bodyFatChangeRate: changes.bodyFatChange,
-      bmiChangeRate: changes.bmiChange,
-      muscleMassChangeRate: changes.muscleMassChange,
-      totalExerciseTime: totalExerciseTime,
+      meanCarbo: parseFloat(meanCarbo.toFixed(1)),
+      meanProtein: parseFloat(meanProtein.toFixed(1)),
+      meanFat: parseFloat(meanFat.toFixed(1)),
+      weightChangeRate: parseFloat(changes.weightChange.toFixed(1)),
+      bodyFatChangeRate: parseFloat(changes.bodyFatChange.toFixed(1)),
+      bmiChangeRate: parseFloat(changes.bmiChange.toFixed(1)),
+      muscleMassChangeRate: parseFloat(changes.muscleMassChange.toFixed(1)),
+      totalExerciseTime: parseFloat(totalExerciseTime.toFixed(1))
     });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);

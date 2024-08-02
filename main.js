@@ -5,8 +5,7 @@ const cors = require('cors');
 const { sequelize, ExerciseLog, User, ExerciseList, 
   AerobicExercise, AnaerobicExercise, DietLog, 
   DietLogDetail, MenuList, DailyReport, 
-  WeeklyReport, MonthlyReport, 
-  UserChanged} = require('./src/index');
+  WeeklyReport, MonthlyReport, UserChanged } = require('./src/index');
 const routes = require('./src/routes/exerciseRoute');
 const routes2 = require('./src/routes/routes');
 const gptRouter = require('./src/routes/gpt/gptRoute');
@@ -161,18 +160,28 @@ await MonthlyReport.bulkCreate([
     exerciseFeedback: 'Satisfactory'
   }
 ]);
-
 await UserChanged.bulkCreate([
   {
-    userChangedId: 10,
+    userChangedId: 1,
     userId: '1234',
     userHeight: 175,
     userWeight: 72,
     userMuscleMass: 33,
     userBodyFatPercentage: 12,
     userBmr: 1773,
-    updatedAt: new Date('2024-07-01')
-  }
+    updatedAt: new Date('2024-06-01')
+  },
+  /*{
+    userChangedId: 2,
+    userId: '1234',
+    userHeight: 175,
+    userWeight: 90,
+    userMuscleMass: 22,
+    userBodyFatPercentage: 30,
+    userBmr: 1915,
+    updatedAt: new Date('2024-06-15')
+    
+  }*/
 ]);
 
 console.log('MonthlyReport added');
