@@ -62,6 +62,19 @@ router.post('/checkUser', async (req, res) => {
 
   router.post('/auth/kakao/accesstoken', kakaoAccessToken);
 
+  function calculateAge(birthDateString) {
+    const today = new Date();
+    const birthDate = new Date(birthDateString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+  
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+  
+    return age;
+  }
+
   // 사용자 프로필 등록
   router.post('/newProfile', async (req, res) => {
     console.log('Received request on /newProfile');
@@ -80,8 +93,7 @@ router.post('/checkUser', async (req, res) => {
     }
     console.log("imageBuffer: ", imageBuffer);
 
-    const currentYear = new Date().getFullYear();
-    const userAge = currentYear - userBirth;
+    const userAge = calculateAge(userBirth);
 
     // BMR 계산 함수 (Harris-Benedict 방정식)
     function calculateBMR(weight, height, age, gender) {
