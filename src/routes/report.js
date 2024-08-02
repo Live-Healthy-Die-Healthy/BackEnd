@@ -437,7 +437,12 @@ router.post('/daily', async (req, res) => {
 
     const isValid = dailyReport ? true : false;
 
-    res.status(200).json({ isFilled, isValid, dailyReport });
+    const user = await User.findOne({
+      where: { userId: userId }
+    });
+    const userImage =  user.userImage ? user.userImage.toString('base64') : null;
+
+    res.status(200).json({ isFilled, isValid, dailyReport, userImage });
   } catch (error) {
     console.error('Error checking diet logs:', error);
     res.status(500).json({ message: 'Error checking diet logs', error: error.message });
@@ -617,14 +622,7 @@ router.post('/newDaily', async (req, res) => {
         }
       }
     }));
-    
-    console.log("dailyAerobics: ", dailyAerobics);
-    console.log("dailyAnaerobics: ", dailyAnaerobics);
-    
-    console.log("Total Calories: ", totalCalories);
-    console.log("Total Carbo: ", totalCarbo);
-    console.log("Total Protein: ", totalProtein);
-    console.log("Total Fat: ", totalFat);
+
 
     const user = await User.findOne({
       where: { userId: userId }
@@ -717,7 +715,12 @@ router.post('/weekly', async (req, res) => {
 
     const isValid = weeklyReport ? true : false;
 
-    res.status(200).json({ isFilled, isValid, weeklyReport });
+    const user = await User.findOne({
+      where: { userId: userId }
+    });
+    const userImage =  user.userImage ? user.userImage.toString('base64') : null;
+
+    res.status(200).json({ isFilled, isValid, weeklyReport, userImage });
   } catch (error) {
     console.error('Error checking weekly diet logs:', error);
     res.status(500).json({ message: 'Error checking weekly diet logs', error: error.message });
@@ -874,12 +877,6 @@ router.post('/newWeekly', async (req, res) => {
     // 객체에서 값 추출
     const { meanCalories, meanCarbo, meanProtein, meanFat } = meanValues;
 
-    // 여기서 meanCalories, meanCarbo, meanProtein, meanFat 변수를 필요에 맞게 사용
-    console.log("Mean Calories:", meanCalories);
-    console.log("Mean Carbohydrates:", meanCarbo);
-    console.log("Mean Protein:", meanProtein);
-    console.log("Mean Fat:", meanFat);
-
     const dietData = {
       meanCalories,
       meanCarbo,
@@ -979,7 +976,11 @@ router.post('/monthly', async (req, res) => {
 
     const isValid = monthlyReport ? true : false;
 
-    res.status(200).json({ isFilled, isValid, monthlyReport });
+    const user = await User.findOne({
+      where: { userId: userId }
+    });
+    const userImage =  user.userImage ? user.userImage.toString('base64') : null;
+    res.status(200).json({ isFilled, isValid, monthlyReport, userImage });
   } catch (error) {
     console.error('Error checking monthly diet logs:', error);
     res.status(500).json({ message: 'Error checking monthly diet logs', error: error.message });

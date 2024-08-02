@@ -221,6 +221,7 @@ router.post('/exerciseLog', async (req, res) => {
           exerciseLogId: log.exerciseLogId,
           exerciseDate: log.exerciseDate,
           exerciseType: log.exerciseType,
+          exerciseImage: exercise.exerciseImage ? exercise.exerciseImage.toString('base64') : null,
           exerciseName: exercise ? exercise.exerciseName : null,
           ...exerciseDetails
         };
