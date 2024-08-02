@@ -960,14 +960,28 @@ router.post('/compareFriend', async (req, res) => {
 
     // 유저 정보 조회
     const user = await User.findOne({
-      where: { userId },
-      attributes: ['username', 'userImage']
+      where: { userId }
+    });
+
+    const userWeeklyInfo = await WeeklyReport.findOne({
+      where: { userId }
+    });
+
+    const userMonthlyInfo = await MonthlyReport.findOne({
+      where: { userId }
     });
 
     // 친구 정보 조회
     const friend = await User.findOne({
       where: { userId: friend_id },
-      attributes: ['username', 'userImage']
+    });
+
+    const friendWeeklyInfo = await WeeklyReport.findOne({
+      where: { userId: friend_id }
+    });
+
+    const friendMonthlyInfo = await MonthlyReport.findOne({
+      where: { userId: friend_id }
     });
 
     if (!user || !friend) {
@@ -978,11 +992,19 @@ router.post('/compareFriend', async (req, res) => {
     res.status(200).json({
       user: {
         username: user.username,
-        userImage: user.userImage ? Buffer.from(user.userImage).toString('base64') : null
+        userImage: user.userImage ? Buffer.from(user.userImage).toString('base64') : null,
+        userBmi: user.userBmi,
+        userRecommnededCal: user.recommendedCal,
+        weeklyExerciseTime: userWeeklyInfo.totalExerciseTime,
+        userWeightChange: userMonthlyInfo.weightChangeRate,
       },
       friend: {
         username: friend.username,
-        userImage: friend.userImage ? Buffer.from(friend.userImage).toString('base64') : null
+        userImage: friend.userImage ? Buffer.from(friend.userImage).toString('base64') : null,
+        userBmi: friend.userBmi,
+        userRecommnededCal: friend.recommendedCal,
+        weeklyExerciseTime: friendWeeklyInfo.totalExerciseTime,
+        userWeightChange: friendMonthlyInfo.weightChangeRate,
       }
     });
   } catch (error) {
