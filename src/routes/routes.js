@@ -1028,6 +1028,11 @@ router.post('/compareFriend', async (req, res) => {
       where: { userId }
     });
 
+    // 친구 정보 조회
+    const friend = await User.findOne({
+      where: { userId: friend_id },
+    });
+
     const userData = {
       userGender: user.userGender,
       userBirth: user.userBirth,
@@ -1089,11 +1094,6 @@ router.post('/compareFriend', async (req, res) => {
 
     // 주간 운동 시간 계산
     const userWeeklyExerciseTime = await calculateTotalExerciseTime(userId, startDate, endDate);
-
-    // 친구 정보 조회
-    const friend = await User.findOne({
-      where: { userId: friend_id },
-    });
 
     // 주간 운동 시간 계산
     const friendWeeklyExerciseTime = await calculateTotalExerciseTime(friend_id, startDate, endDate);
