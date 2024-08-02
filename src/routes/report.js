@@ -159,6 +159,8 @@ const getPreviousMonthData = async (userId, date) => {
 
 // 변화를 계산하는 함수
 const calculateChanges = (previousData, currentData) => {
+  console.log("current weight: ",currentData.userWeight);
+  console.log("previous weight: ", previousData.userWeight);
   return {
     weightChange: currentData.userWeight - previousData.userWeight,
     bodyFatChange: currentData.userBodyFatPercentage - previousData.userBodyFatPercentage,
@@ -260,7 +262,7 @@ async function performDailyAnalysis(userId, date, dietData, userData, dailyAerob
 
 
 // 주간 분석 수행
-async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics, totalExerciseTime) {
+async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAerobics, weeklyAnaerobics, totalExerciseTime, aerobicRatio, anaerobicRatio) {
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -268,6 +270,14 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
   console.log("userBirth: ", userData.userBirth);
   console.log("userWeight: ", userData.userWeight);
 
+// aerobicRatio를 소수점 2째자리까지 반올림하고, NaN이 아닌지 확인
+const roundedAerobicRatio = isNaN(aerobicRatio) ? 0 : Math.round(aerobicRatio * 100) / 100;
+
+// anaerobicRatio의 각 값을 소수점 2째자리까지 반올림하고, NaN이 아닌지 확인
+const roundedAnaerobicRatio = {};
+for (const key in anaerobicRatio) {
+  roundedAnaerobicRatio[key] = isNaN(anaerobicRatio[key]) ? 0 : Math.round(anaerobicRatio[key] * 100) / 100;
+}
   while (retryCount < maxRetries) {
     console.log("retryCount: ", retryCount);
     try {
@@ -298,6 +308,8 @@ async function performWeeklyAnalysis(userId, date, dietData, userData, weeklyAer
           aeroInfo: weeklyAerobics,
           dietInfo: dietData,
           totalTraining: totalExerciseTime,
+          aerobicRatio: roundedAerobicRatio, // 반올림된 값
+          anaerobicRatio: roundedAnaerobicRatio // 반올림된 값
         }
       );
       
@@ -793,12 +805,12 @@ router.post('/newWeekly', async (req, res) => {
     const weeklyAerobics = [];
 
     dailyReports.forEach((report) => {
-      if (report.anAeroInfo) {
+      if (Array.isArray(report.anAeroInfo)) {
         weeklyAnaerobics.push(...report.anAeroInfo);
       }
     });
     dailyReports.forEach((report) => {
-      if (report.aeroInfo) {
+      if (Array.isArray(report.aeroInfo)) {
         weeklyAerobics.push(...report.aeroInfo);
       }
     });
@@ -835,14 +847,14 @@ router.post('/newWeekly', async (req, res) => {
     const totalExerciseTime = totalAerobicTime + totalAnaerobicTimeSum;
 
     // 비율 계산
-    const aerobicRatio = (totalAerobicTime / totalExerciseTime) * 100;
+    const aerobicRatio = totalExerciseTime > 0 ? Math.round((totalAerobicTime / totalExerciseTime) * 10000) / 100 : 0;
     const anaerobicRatio = {
-      chest: (totalAnaerobicTime.chest / totalExerciseTime) * 100,
-      arm: (totalAnaerobicTime.arm / totalExerciseTime) * 100, // 팔
-      core: (totalAnaerobicTime.core / totalExerciseTime) * 100, // 코어
-      shoulder: (totalAnaerobicTime.shoulder / totalExerciseTime) * 100, // 어깨
-      back: (totalAnaerobicTime.back / totalExerciseTime) * 100,
-      leg: (totalAnaerobicTime.leg / totalExerciseTime) * 100,
+      chest: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.chest / totalExerciseTime) * 10000) / 100 : 0,
+      arm: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.arm / totalExerciseTime) * 10000) / 100 : 0, // 팔
+      core: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.core / totalExerciseTime) * 10000) / 100 : 0, // 코어
+      shoulder: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.shoulder / totalExerciseTime) * 10000) / 100 : 0, // 어깨
+      back: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.back / totalExerciseTime) * 10000) / 100 : 0,
+      leg: totalExerciseTime > 0 ? Math.round((totalAnaerobicTime.leg / totalExerciseTime) * 10000) / 100 : 0,
     };
     // 결과 출력 (디버깅용)
     console.log("Aerobic Ratio: ", aerobicRatio);
@@ -894,7 +906,9 @@ router.post('/newWeekly', async (req, res) => {
       userData,
       weeklyAerobics,
       weeklyAnaerobics,
-      totalExerciseTime
+      totalExerciseTime,
+      aerobicRatio,
+      anaerobicRatio
     );
 
     // 응답에서 주의 첫 날인 월요일 날짜를 포함
@@ -1694,10 +1708,10 @@ function calculateMaxSpeedAndEnduranceJogging(user) {
 
   // MET를 사용한 조정
   const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 200); // 단위: km/h
-  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed) * 1.3;
 
   // 최종적으로 최대 지속 시간 계산
-  maxEndurance = maxMET * 10; // 단위: 분
+  maxEndurance = maxMET * 10 *1.3; // 단위: 분
 
   return { maxSpeed, maxEndurance };
 }
@@ -1761,10 +1775,10 @@ function calculateMaxSpeedAndEnduranceWalking(user) {
 
   // MET를 사용한 조정
   const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 300); // 단위: km/h
-  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed) * 1.3;
 
   // 최종적으로 최대 지속 시간 계산
-  maxEndurance = maxMET * 20; // 단위: 분
+  maxEndurance = maxMET * 20 * 1.3; // 단위: 분
 
   return { maxSpeed, maxEndurance };
 }
@@ -1828,10 +1842,10 @@ function calculateMaxSpeedAndEnduranceCycling(user) {
 
   // MET를 사용한 조정
   const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 100); // 단위: km/h
-  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed) * 1.3;
 
   // 최종적으로 최대 지속 시간 계산
-  maxEndurance = maxMET * 10; // 단위: 분
+  maxEndurance = maxMET * 10 * 1.3; // 단위: 분
 
   return { maxSpeed, maxEndurance };
 }
@@ -1895,12 +1909,12 @@ function calculateMaxSpeedAndEnduranceSwimming(user) {
 
   // MET를 사용한 조정
   const maxPossibleSpeed = maxMET * 3.5 * (userWeight / 400); // 단위: km/h
-  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed);
+  maxSpeed = Math.min(maxSpeed, maxPossibleSpeed) * 1.3;
 
   // 최종적으로 최대 지속 시간 계산
-  maxEndurance = maxMET * 5; // 단위: 분
+  maxEndurance = maxMET * 5 * 1.3; // 단위: 분
 
-  return { maxSpeed, maxEndurance };
+  return { maxSpeed , maxEndurance };
 }
 
 // 유효성 검사 함수

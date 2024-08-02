@@ -21,22 +21,27 @@ module.exports = class WeeklyReport extends Sequelize.Model {
       meanCalories: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        defaultValue: 0,
       },
       meanCarbo: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        defaultValue: 0,
       },
       meanProtein: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        defaultValue: 0,
       },
       meanFat: {
         type: DataTypes.INTEGER,
         allowNull: true,
+        defaultValue: 0,
       },
       dietData: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {},
       },
       dietFeedback: {
         type: DataTypes.STRING,
@@ -49,10 +54,12 @@ module.exports = class WeeklyReport extends Sequelize.Model {
       anAeroInfo: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {},
       },
       aeroInfo: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {},
       },
       totalExerciseTime: {
         type: DataTypes.INTEGER,
@@ -62,12 +69,23 @@ module.exports = class WeeklyReport extends Sequelize.Model {
       weeklyCal: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: 0,
       },
       date: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      aerobicRatio: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0,
+      },
+      anaerobicRatio: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: 0,
+      }
     }, {
       sequelize,
       timestamps: true,

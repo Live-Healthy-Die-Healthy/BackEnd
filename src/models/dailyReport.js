@@ -41,34 +41,42 @@ module.exports = class DailyReport extends Sequelize.Model {
       breakfastLog: {
         type: DataTypes.JSON, // 아침 식사 로그
         allowNull: true,
+        defaultValue: {}
       },
       breakfastCal: {
         type: DataTypes.DOUBLE, // 아침 식사 칼로리
         allowNull: true,
+        defaultValue: 0
       },
       lunchLog: {
         type: DataTypes.JSON, // 점심 식사 로그
         allowNull: true,
+        defaultValue: {}
       },
       lunchCal: {
         type: DataTypes.DOUBLE, // 점심 식사 칼로리
         allowNull: true,
+        defaultValue: 0
       },
       dinnerLog: {
         type: DataTypes.JSON, // 저녁 식사 로그
         allowNull: true,
+        defaultValue: {}
       },
       dinnerCal: {
         type: DataTypes.DOUBLE, // 저녁 식사 칼로리
         allowNull: true,
+        defaultValue: 0
       },
       snackLog: {
         type: DataTypes.JSON, // 간식 로그
         allowNull: true,
+        defaultValue: {}
       },
       snackCal: {
         type: DataTypes.DOUBLE, // 간식 칼로리
         allowNull: true,
+        defaultValue: 0
       },
       recommendedCal: {
         type: DataTypes.INTEGER,
@@ -87,20 +95,23 @@ module.exports = class DailyReport extends Sequelize.Model {
       },
       date: {
         type: DataTypes.DATE,
-        allowNull: false,
+        allowNull: true,
         defaultValue: DataTypes.NOW,
       },
       anAeroInfo: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {}
       },
       aeroInfo: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {}
       },
       dietInfo: {
         type: DataTypes.JSON,
         allowNull: true,
+        defaultValue: {}
       }
     }, {
       sequelize,
