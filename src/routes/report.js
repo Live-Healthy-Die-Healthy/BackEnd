@@ -672,7 +672,7 @@ router.post('/newDaily', async (req, res) => {
       recommendedCal: userData.userRecommendedCal,
       aeroInfo: dailyAerobics,
       anAeroInfo: dailyAnaerobics,
-      userImage: user.userImage,
+      userImage: user.userImage ? user.userImage.toString('base64') : null,
   });
   } catch (error) {
     console.error(error);
@@ -933,7 +933,7 @@ router.post('/newWeekly', async (req, res) => {
       totalTraining: totalExerciseTime,
       anaerobicRatio: anaerobicRatio,
       aerobicRatio: aerobicRatio,
-      userImage: user.userImage,
+      userImage: user.userImage ? user.userImage.toString('base64') : null,
     });
   } catch (error) {
     console.error('Error retrieving weekly report:', error);
@@ -1087,7 +1087,7 @@ router.post('/newMonthly', async (req, res) => {
       bmiChangeRate: parseFloat(changes.bmiChange.toFixed(1)),
       muscleMassChangeRate: parseFloat(changes.muscleMassChange.toFixed(1)),
       totalExerciseTime: parseFloat(totalExerciseTime.toFixed(1)),
-      userImage: user.userImage,
+      userImage: user.userImage ? user.userImage.toString('base64') : null,
     });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
