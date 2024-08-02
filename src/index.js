@@ -39,6 +39,7 @@ const MonthlyReport = require('./models/monthlyReport');
 const ExerciseScrap = require('./models/exerciseScrap');
 const Friend = require('./models/friend');
 const CheatDay = require('./models/cheatDay');
+const UserChanged = require('./models/userChanged');
 
 User.init(sequelize);
 AerobicExercise.init(sequelize);
@@ -55,6 +56,7 @@ MonthlyReport.init(sequelize);
 ExerciseScrap.init(sequelize);
 Friend.init(sequelize);
 CheatDay.init(sequelize);
+UserChanged.init(sequelize);
 
 db.User = User;
 db.AerobicExercise = AerobicExercise;
@@ -71,6 +73,7 @@ db.MonthlyReport = MonthlyReport;
 db.ExerciseScrap = ExerciseScrap;
 db.Friend = Friend;
 db.CheatDay = CheatDay;
+db.UserChanged = UserChanged;
 
 // 모델 간의 관계 설정
 Object.keys(db).forEach(modelName => {

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { parseISO, isValid } = require('date-fns');
 const { kakaoAccessToken } = require('../controllers/loginController')
-const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList, Friend, CheatDay } = require('../index');
+const { ExerciseList, AerobicExercise, AnaerobicExercise, ExerciseLog, User, DietLog, DietLogDetail, MenuList, Friend, CheatDay, UserChanged } = require('../index');
 const { Op, Sequelize } = require('sequelize'); 
 const { Analysis } = require('../index');
 const { v4: uuidv4 } = require('uuid');
@@ -62,6 +62,19 @@ router.post('/checkUser', async (req, res) => {
 
   router.post('/auth/kakao/accesstoken', kakaoAccessToken);
 
+  function calculateAge(birthDateString) {
+    const today = new Date();
+    const birthDate = new Date(birthDateString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+  
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+  
+    return age;
+  }
+
   // 사용자 프로필 등록
   router.post('/newProfile', async (req, res) => {
     console.log('Received request on /newProfile');
@@ -80,8 +93,7 @@ router.post('/checkUser', async (req, res) => {
     }
     console.log("imageBuffer: ", imageBuffer);
 
-    const currentYear = new Date().getFullYear();
-    const userAge = currentYear - userBirth;
+    const userAge = calculateAge(userBirth);
 
     // BMR 계산 함수 (Harris-Benedict 방정식)
     function calculateBMR(weight, height, age, gender) {
@@ -107,6 +119,8 @@ router.post('/checkUser', async (req, res) => {
     const recommendedCal = calculateTDEE(userBMR, activityLevel);
     console.log(`권장 섭취 칼로리: ${recommendedCal.toFixed(2)} kcal/day`);
 
+
+
     try {
       // 새로운 사용자 프로필 등록
       const newUser = await User.create({
@@ -125,6 +139,19 @@ router.post('/checkUser', async (req, res) => {
         connectedAt,
         recommendedCal
       });
+
+       // 초기 데이터 userChanged에 저장
+      await UserChanged.create({
+      userId,
+      userHeight,
+      userWeight,
+      userMuscleMass,
+      userBmi,
+      userBodyFatPercentage,
+      userBmr: userBMR,
+      updatedAt: new Date()
+    });
+
       res.status(200).json(newUser);
     } catch (error) {
       console.error('프로필 등록 오류:', error);
@@ -361,81 +388,90 @@ router.post('/profile', async (req, res) => {
 
 //프로필 수정 - 사용자 정보 수정
 
+function calculateAge(birthDate) {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDifference = today.getMonth() - birth.getMonth();
+
+  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return age;
+}
+
+// BMR 계산 함수 (Harris-Benedict 방정식)
+function calculateBMR(weight, height, age, gender) {
+  if (gender === 'Male') {
+    return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+  } else if (gender === 'Female') {
+    return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+  } else {
+    throw new Error('Invalid gender');
+  }
+}
+
+// TDEE 계산 함수 
+function calculateTDEE(bmr, activityLevel) {
+  return bmr * activityLevel;
+}
+// 사용자 프로필 수정 라우트
 router.put('/profile', async (req, res) => {
   const { userId, username, userBirth, userHeight, userWeight, userMuscleMass, userBmi, userBodyFatPercentage, userImage } = req.body;
 
-
-
   try {
-      const user = await User.findOne({ where: { userId } });
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-      let imageBuffer = null;
-      if (userImage && userImage.startsWith('data:image')) {
-        const base64Data = userImage.split(',')[1];
-        imageBuffer = Buffer.from(base64Data, 'base64');
-      }
-      console.log("imageBuffer: ", imageBuffer);
-
-    // BMR 계산 함수 (Harris-Benedict 방정식)
-    function calculateBMR(weight, height, age, gender) {
-      if (gender === 'Male') {
-        return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
-      } else if (gender === 'Female') {
-        return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
-      } else {
-        throw new Error('Invalid gender');
-      }
+    const user = await User.findOne({ where: { userId } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // TDEE 계산 함수 
-    function calculateTDEE(bmr, activityLevel) {
-      return bmr * activityLevel;
+    let imageBuffer = null;
+    if (userImage && userImage.startsWith('data:image')) {
+      const base64Data = userImage.split(',')[1];
+      imageBuffer = Buffer.from(base64Data, 'base64');
     }
 
-    function calculateAge(birthDate) {
-      const today = new Date();
-      const birth = new Date(birthDate);
-      let age = today.getFullYear() - birth.getFullYear();
-      const monthDifference = today.getMonth() - birth.getMonth();
-      
-      // Adjust age if the birth month hasn't occurred yet this year
-      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birth.getDate())) {
-        age--;
-      }
-    
-      return age;
-    }
-
-    age = calculateAge(userBirth);
-
-    // BMR 계산
+    const age = calculateAge(userBirth);
     const userBMR = calculateBMR(userWeight, userHeight, age, user.userGender);
     const activityLevel = 1.55;
-
-    // TDEE 계산 (권장 섭취 칼로리)
     const recommendedCal = calculateTDEE(userBMR, activityLevel);
-    console.log(`권장 섭취 칼로리: ${recommendedCal.toFixed(2)} kcal/day`);
 
+    // BMR 및 recommendedCal을 소수 첫째 자리로 반올림
+    const roundedBMR = parseFloat(userBMR.toFixed(1));
+    const roundedRecommendedCal = parseFloat(recommendedCal.toFixed(1));
 
-      user.username = username;
-      user.userBirth = userBirth;
-      user.userHeight = userHeight;
-      user.userWeight = userWeight;
-      user.userMuscleMass=userMuscleMass;
-      user.userBmi= userBmi;
-      user.userBodyFatPercentage= userBodyFatPercentage;
-      user.userBmr= userBMR;
-      user.userImage = imageBuffer;
-      user.recommendedCal = recommendedCal
+    // 기존 프로필 데이터를 UserChanged에 저장
+    await UserChanged.create({
+      userId: user.userId,
+      userHeight: userHeight,
+      userWeight: userWeight,
+      userMuscleMass: userMuscleMass,
+      userBmi: userBmi,
+      userBodyFatPercentage: userBodyFatPercentage,
+      userBmr: roundedBMR,
+      updatedAt: new Date() // 현재 시간을 설정
+    });
 
-      await user.save();
+    // 사용자 프로필 업데이트
+    user.username = username;
+    user.userBirth = userBirth;
+    user.userHeight = userHeight;
+    user.userWeight = userWeight;
+    user.userMuscleMass = userMuscleMass;
+    user.userBmi = userBmi;
+    user.userBodyFatPercentage = userBodyFatPercentage;
+    user.userBmr = roundedBMR;
+    user.userImage = imageBuffer;
+    user.recommendedCal = roundedRecommendedCal;
 
-      res.status(200).json(user);
+    await user.save();
+
+    // 응답에 userChangedId 추가
+    res.status(200).json({ ...user.toJSON()});
   } catch (error) {
-      console.error('Error updating user profile:', error);
-      res.status(500).json({ message: 'Failed to update user profile' });
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ message: 'Failed to update user profile' });
   }
 });
 
@@ -1006,77 +1042,6 @@ router.post('/friendList', async (req, res) => {
   }
 });
 
-const getUserData = async (userId) => {
-  const user = await User.findOne({
-    where: { userId: userId },
-    attributes: ['userWeight', 'userBodyFatPercentage', 'userBmi', 'userMuscleMass']
-  });
-
-  if (user) {
-    return {
-      userWeight: user.userWeight,
-      userBodyFatPercentage: user.userBodyFatPercentage,
-      userBmi: user.userBmi,
-      userMuscleMass: user.userMuscleMass
-    };
-  } else {
-    // 기본값을 0으로 설정
-    return {
-      userWeight: 0,
-      userBodyFatPercentage: 0,
-      userBmi: 0,
-      userMuscleMass: 0
-    };
-  }
-};
-
-const getPreviousMonthData = async (userId, date) => {
-  // 주어진 날짜를 기준으로 이전 달의 첫날과 마지막 날 계산
-  const currentDate = new Date(date);
-  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-  const firstDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
-  const lastDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
-
-  // User 모델에서 이전 달 데이터 조회
-  const previousMonthData = await User.findOne({
-    where: {
-      userId: userId,
-      updatedAt: {
-        [Op.between]: [firstDayOfPreviousMonth, lastDayOfPreviousMonth]
-      }
-    },
-    attributes: ['userWeight', 'userBodyFatPercentage', 'userBmi', 'userMuscleMass']
-  });
-
-  // 데이터 반환
-  if (previousMonthData) {
-    return {
-      userWeight: previousMonthData.userWeight,
-      userBodyFatPercentage: previousMonthData.userBodyFatPercentage,
-      userBmi: previousMonthData.userBmi,
-      userMuscleMass: previousMonthData.userMuscleMass
-    };
-  } else {
-    // 기본값을 0으로 설정
-    return {
-      userWeight: 0,
-      userBodyFatPercentage: 0,
-      userBmi: 0,
-      userMuscleMass: 0
-    };
-  }
-};
-
-const calculateChanges = (previousData, currentData) => {
-  console.log("current weight: ",currentData.userWeight);
-  console.log("previous weight: ", previousData.userWeight);
-  return {
-    weightChange: currentData.userWeight - previousData.userWeight,
-    bodyFatChange: currentData.userBodyFatPercentage - previousData.userBodyFatPercentage,
-    bmiChange: currentData.userBmi - previousData.userBmi,
-    muscleMassChange: currentData.userMuscleMass - previousData.userMuscleMass,
-  };
-};
 
 router.post('/compareFriend', async (req, res) => {
   const { userId, friend_id, date } = req.body;
@@ -1099,45 +1064,77 @@ router.post('/compareFriend', async (req, res) => {
       return res.status(400).json({ error: 'Users are not friends' });
     }
 
-    // 유저  정보 조회
-    const user = await User.findOne({
-      where: { userId }
-    });
-
+    // 유저 정보 조회
+    const user = await User.findOne({ where: { userId } });
     // 친구 정보 조회
-    const friend = await User.findOne({
-      where: { userId: friend_id },
-    });
+    const friend = await User.findOne({ where: { userId: friend_id } });
 
-    const userData = {
-      userGender: user.userGender,
-      userBirth: user.userBirth,
+    if (!user || !friend) {
+      return res.status(404).json({ error: 'User or Friend not found' });
+    }
+
+    // 유저와 친구의 이전 데이터 조회
+    const getPreviousData = async (userId, date) => {
+      const targetDate = new Date(date);
+      const pastDate = new Date(targetDate);
+      pastDate.setDate(pastDate.getDate() - 30); // 30일 전 날짜
+
+      const previousData = await UserChanged.findOne({
+        where: {
+          userId,
+          updatedAt: {
+            [Op.lte]: pastDate
+          }
+        },
+        order: [['updatedAt', 'DESC']]
+      });
+
+      return previousData;
+    };
+
+    const userPreviousData = await getPreviousData(userId, date);
+    const friendPreviousData = await getPreviousData(friend_id, date);
+
+
+    // 이전 데이터의 날짜를 로그로 출력
+    console.log(`User's previous data date: ${userPreviousData ? userPreviousData.updatedAt : 'No data found'}`);
+    console.log(`Friend's previous data date: ${friendPreviousData ? friendPreviousData.updatedAt : 'No data found'}`);
+
+    // 현재 데이터
+    const currentUserData = {
       userWeight: user.userWeight,
-      userMuscleMass: user.userMuscleMass,
-      userBmi: user.userBmi,
       userBodyFatPercentage: user.userBodyFatPercentage,
-      userBmr: user.userBmr
+      userBmi: user.userBmi,
+      userMuscleMass: user.userMuscleMass
     };
 
-    const friendData = {
-      userGender: friend.userGender,
-      userBirth: friend.userBirth,
+    const currentFriendData = {
       userWeight: friend.userWeight,
-      userMuscleMass: friend.userMuscleMass,
-      userBmi: friend.userBmi,
       userBodyFatPercentage: friend.userBodyFatPercentage,
-      userBmr: friend.userBmr
+      userBmi: friend.userBmi,
+      userMuscleMass: friend.userMuscleMass
     };
 
-    // 주간 시작일과 마지막일 계산
-    const startDate = getMonday(date);
-    const endDate = getSunday(date);
+    // 변화량 계산 함수
+    const calculateChanges = (currentData, previousData) => {
+      if (!previousData) {
+        return {
+          weightChange: 0,
+          bodyFatChange: 0,
+          bmiChange: 0,
+          muscleMassChange: 0,
+        };
+      }
+      return {
+        weightChange: currentData.userWeight - previousData.userWeight,
+        bodyFatChange: currentData.userBodyFatPercentage - previousData.userBodyFatPercentage,
+        bmiChange: currentData.userBmi - previousData.userBmi,
+        muscleMassChange: currentData.userMuscleMass - previousData.userMuscleMass,
+      };
+    };
 
-    const userPreviousMonthData = await getPreviousMonthData(userId, date);
-    const userChanges = calculateChanges(userPreviousMonthData, userData);
-    const friendPreviousMonthData = await getPreviousMonthData(friend_id, date);
-    const friendChanges = calculateChanges(friendPreviousMonthData, friendData);
-
+    const userChanges = calculateChanges(currentUserData, userPreviousData);
+    const friendChanges = calculateChanges(currentFriendData, friendPreviousData);
 
     // 주간 운동 시간을 계산하는 함수
     const calculateTotalExerciseTime = async (userId, startDate, endDate) => {
@@ -1168,15 +1165,13 @@ router.post('/compareFriend', async (req, res) => {
       return totalExerciseTime;
     };
 
+    // 주간 시작일과 마지막일 계산
+    const startDate = getMonday(date);
+    const endDate = getSunday(date);
+
     // 주간 운동 시간 계산
     const userWeeklyExerciseTime = await calculateTotalExerciseTime(userId, startDate, endDate);
-
-    // 주간 운동 시간 계산
     const friendWeeklyExerciseTime = await calculateTotalExerciseTime(friend_id, startDate, endDate);
-
-    if (!user || !friend) {
-      return res.status(404).json({ error: 'User or Friend not found' });
-    }
 
     // 유저와 친구의 정보 반환
     res.status(200).json({
