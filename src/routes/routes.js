@@ -69,7 +69,7 @@ router.post('/checkUser', async (req, res) => {
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
 
     const connectedAt = new Date();
-    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender,  userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body.profileData;
+    const { userId, userEmail, userNickname, userBirth, userHeight, userWeight, userGender,  userMuscleMass, userBmi, userBodyFatPercentage, userImage } = req.body.profileData;
     const username = userNickname;
     console.log("userImage: ", userImage);
 
@@ -120,7 +120,7 @@ router.post('/checkUser', async (req, res) => {
         userMuscleMass,
         userBmi,
         userBodyFatPercentage,
-        userBmr,
+        userBmr: userBMR,
         userImage : imageBuffer,
         connectedAt,
         recommendedCal
@@ -362,7 +362,9 @@ router.post('/profile', async (req, res) => {
 //프로필 수정 - 사용자 정보 수정
 
 router.put('/profile', async (req, res) => {
-  const { userId, username, userBirth, userHeight, userWeight, userMuscleMass, userBmi, userBodyFatPercentage, userBmr, userImage } = req.body;
+  const { userId, username, userBirth, userHeight, userWeight, userMuscleMass, userBmi, userBodyFatPercentage, userImage } = req.body;
+
+
 
   try {
       const user = await User.findOne({ where: { userId } });
@@ -376,6 +378,47 @@ router.put('/profile', async (req, res) => {
       }
       console.log("imageBuffer: ", imageBuffer);
 
+    // BMR 계산 함수 (Harris-Benedict 방정식)
+    function calculateBMR(weight, height, age, gender) {
+      if (gender === 'Male') {
+        return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+      } else if (gender === 'Female') {
+        return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+      } else {
+        throw new Error('Invalid gender');
+      }
+    }
+
+    // TDEE 계산 함수 
+    function calculateTDEE(bmr, activityLevel) {
+      return bmr * activityLevel;
+    }
+
+    function calculateAge(birthDate) {
+      const today = new Date();
+      const birth = new Date(birthDate);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDifference = today.getMonth() - birth.getMonth();
+      
+      // Adjust age if the birth month hasn't occurred yet this year
+      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+    
+      return age;
+    }
+
+    age = calculateAge(userBirth);
+
+    // BMR 계산
+    const userBMR = calculateBMR(userWeight, userHeight, age, user.userGender);
+    const activityLevel = 1.55;
+
+    // TDEE 계산 (권장 섭취 칼로리)
+    const recommendedCal = calculateTDEE(userBMR, activityLevel);
+    console.log(`권장 섭취 칼로리: ${recommendedCal.toFixed(2)} kcal/day`);
+
+
       user.username = username;
       user.userBirth = userBirth;
       user.userHeight = userHeight;
@@ -383,8 +426,9 @@ router.put('/profile', async (req, res) => {
       user.userMuscleMass=userMuscleMass;
       user.userBmi= userBmi;
       user.userBodyFatPercentage= userBodyFatPercentage;
-      user.userBmr= userBmr;
+      user.userBmr= userBMR;
       user.userImage = imageBuffer;
+      user.recommendedCal = recommendedCal
 
       await user.save();
 
@@ -1055,7 +1099,7 @@ router.post('/compareFriend', async (req, res) => {
       return res.status(400).json({ error: 'Users are not friends' });
     }
 
-    // 유저 정보 조회
+    // 유저  정보 조회
     const user = await User.findOne({
       where: { userId }
     });
