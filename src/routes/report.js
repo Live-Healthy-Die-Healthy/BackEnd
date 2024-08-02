@@ -332,7 +332,7 @@ for (const key in anaerobicRatio) {
 }
 
 // 월간 분석 수행
-async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics) {
+async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics, changes) {
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -343,7 +343,7 @@ async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyA
   while (retryCount < maxRetries) {
     console.log("retryCount: ", retryCount);
     try {
-      const analysisResult = await getGPTmonthlyResponse(dietData, userData, monthlyAerobics, monthlyAnaerobics);
+      const analysisResult = await getGPTmonthlyResponse(dietData, userData, monthlyAerobics, monthlyAnaerobics,);
 
       
       // 응답 형식 검증
@@ -370,6 +370,10 @@ async function performMonthlyAnalysis(userId, date, dietData, userData, monthlyA
           anAeroInfo: monthlyAnaerobics,  
           aeroInfo: monthlyAerobics,
           dietInfo: dietData,
+          weightChangeRate: changes.weightChange,
+          bodyFatChangeRate: changes.bodyFatChange,
+          bmiChangeRate: changes.bmiChange,
+          muscleMassChangeRate: changes.muscleMassChange,
         }
       );
       
@@ -1013,10 +1017,10 @@ router.post('/newMonthly', async (req, res) => {
     const monthlyAerobics = [];
 
     dailyReports.forEach(report => {
-      if (report.anAeroInfo) {
+      if (Array.isArray(report.anAeroInfo)) {
         monthlyAnaerobics.push(...report.anAeroInfo);
       }
-      if (report.aeroInfo) {
+      if (Array.isArray(report.aeroInfo)) {
         monthlyAerobics.push(...report.aeroInfo);
       }
     });
@@ -1062,7 +1066,7 @@ router.post('/newMonthly', async (req, res) => {
     const previousMonthData = await getPreviousMonthData(userId, date);
     const changes = calculateChanges(previousMonthData, userData);
 
-    const response = await performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics);
+    const response = await performMonthlyAnalysis(userId, date, dietData, userData, monthlyAerobics, monthlyAnaerobics, changes);
 
     res.status(200).json({
       meanCalories: meanCalories,

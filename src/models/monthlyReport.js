@@ -66,6 +66,26 @@ module.exports = class MonthlyReport extends Sequelize.Model {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      weightChangeRate: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0
+      },
+      bodyFatChangeRate: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0
+      },
+      bmiChangeRate: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0
+      },
+      muscleMassChangeRate: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+        defaultValue: 0
+      },
     }, {
       sequelize,
       timestamps: true,
