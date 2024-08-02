@@ -21,6 +21,31 @@ router.use(express.json({
   limit : "100mb"
 }));
 
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  return new Date(d.setDate(diff));
+}
+
+// 주의 마지막일(일요일)을 구하는 함수
+function getSunday(date) {
+  const monday = getMonday(date);
+  return new Date(monday.setDate(monday.getDate() + 6));
+}
+
+// 월의 시작일(1일)을 구하는 함수
+function getFirstDayOfMonth(date) {
+  const d = new Date(date);
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+// 월의 마지막일을 구하는 함수
+function getLastDayOfMonth(date) {
+  const d = new Date(date);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
 // 사용자 존재 여부 확인
 router.post('/checkUser', async (req, res) => {
     console.log("testCheckUser");
@@ -937,11 +962,51 @@ router.post('/friendList', async (req, res) => {
   }
 });
 
-router.post('/compareFriend', async (req, res) => {
-  const { userId, friend_id } = req.body;
+const getPreviousMonthData = async (userId, date) => {
+  const currentDate = new Date(date);
+  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const firstDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
+  const lastDayOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
 
-  if (!userId || !friend_id) {
-    return res.status(400).json({ error: 'userId and friend_id are required' });
+  const previousMonthReports = await MonthlyReport.findAll({
+    where: {
+      userId: userId,
+      date: {
+        [Op.between]: [firstDayOfPreviousMonth, lastDayOfPreviousMonth]
+      }
+    },
+    order: [['date', 'DESC']]
+  });
+
+  if (previousMonthReports.length > 0) {
+    return previousMonthReports[0];
+  } else {
+    // 기본값을 0으로 설정
+    return {
+      userWeight: 0,
+      userBodyFatPercentage: 0,
+      userBmi: 0,
+      userMuscleMass: 0
+    };
+  }
+};
+
+const calculateChanges = (previousData, currentData) => {
+  console.log("current weight: ",currentData.userWeight);
+  console.log("previous weight: ", previousData.userWeight);
+  return {
+    weightChange: currentData.userWeight - previousData.userWeight,
+    bodyFatChange: currentData.userBodyFatPercentage - previousData.userBodyFatPercentage,
+    bmiChange: currentData.userBmi - previousData.userBmi,
+    muscleMassChange: currentData.userMuscleMass - previousData.userMuscleMass,
+  };
+};
+
+router.post('/compareFriend', async (req, res) => {
+  const { userId, friend_id, date } = req.body;
+
+  if (!userId || !friend_id || !date) {
+    return res.status(400).json({ error: 'userId, friend_id, and date are required' });
   }
 
   try {
@@ -963,26 +1028,75 @@ router.post('/compareFriend', async (req, res) => {
       where: { userId }
     });
 
-    const userWeeklyInfo = await WeeklyReport.findOne({
-      where: { userId }
-    });
+    const userData = {
+      userGender: user.userGender,
+      userBirth: user.userBirth,
+      userWeight: user.userWeight,
+      userMuscleMass: user.userMuscleMass,
+      userBmi: user.userBmi,
+      userBodyFatPercentage: user.userBodyFatPercentage,
+      userBmr: user.userBmr
+    };
 
-    const userMonthlyInfo = await MonthlyReport.findOne({
-      where: { userId }
-    });
+    const friendData = {
+      userGender: friend.userGender,
+      userBirth: friend.userBirth,
+      userWeight: friend.userWeight,
+      userMuscleMass: friend.userMuscleMass,
+      userBmi: friend.userBmi,
+      userBodyFatPercentage: friend.userBodyFatPercentage,
+      userBmr: friend.userBmr
+    };
+
+    // 주간 시작일과 마지막일 계산
+    const startDate = getMonday(date);
+    const endDate = getSunday(date);
+
+    const userPreviousMonthData = await getPreviousMonthData(userId, date);
+    const userChanges = calculateChanges(userPreviousMonthData, userData);
+    const friendPreviousMonthData = await getPreviousMonthData(friend_id, date);
+    const friendChanges = calculateChanges(friendPreviousMonthData, friendData);
+
+
+    // 주간 운동 시간을 계산하는 함수
+    const calculateTotalExerciseTime = async (userId, startDate, endDate) => {
+      const exerciseLogs = await ExerciseLog.findAll({
+        where: {
+          userId,
+          date: {
+            [Op.between]: [startDate, endDate]
+          }
+        },
+        include: [
+          { model: AerobicExercise, as: 'aerobic' },
+          { model: AnaerobicExercise, as: 'anaerobic' }
+        ]
+      });
+
+      let totalExerciseTime = 0;
+
+      exerciseLogs.forEach(log => {
+        if (log.aerobic) {
+          totalExerciseTime += log.aerobic.exerciseTime;
+        }
+        if (log.anaerobic) {
+          totalExerciseTime += log.anaerobic.exerciseTime;
+        }
+      });
+
+      return totalExerciseTime;
+    };
+
+    // 주간 운동 시간 계산
+    const userWeeklyExerciseTime = await calculateTotalExerciseTime(userId, startDate, endDate);
 
     // 친구 정보 조회
     const friend = await User.findOne({
       where: { userId: friend_id },
     });
 
-    const friendWeeklyInfo = await WeeklyReport.findOne({
-      where: { userId: friend_id }
-    });
-
-    const friendMonthlyInfo = await MonthlyReport.findOne({
-      where: { userId: friend_id }
-    });
+    // 주간 운동 시간 계산
+    const friendWeeklyExerciseTime = await calculateTotalExerciseTime(friend_id, startDate, endDate);
 
     if (!user || !friend) {
       return res.status(404).json({ error: 'User or Friend not found' });
@@ -994,17 +1108,23 @@ router.post('/compareFriend', async (req, res) => {
         username: user.username,
         userImage: user.userImage ? Buffer.from(user.userImage).toString('base64') : null,
         userBmi: user.userBmi,
-        userRecommnededCal: user.recommendedCal,
-        weeklyExerciseTime: userWeeklyInfo.totalExerciseTime,
-        userWeightChange: userMonthlyInfo.weightChangeRate,
+        userRecommendedCal: user.recommendedCal,
+        weeklyExerciseTime: userWeeklyExerciseTime,
+        weightChangeRate: userChanges.weightChange,
+        bodyFatChangeRate: userChanges.bodyFatChange,
+        bmiChangeRate: userChanges.bmiChange,
+        muscleMassChangeRate: userChanges.muscleMassChange,
       },
       friend: {
         username: friend.username,
         userImage: friend.userImage ? Buffer.from(friend.userImage).toString('base64') : null,
         userBmi: friend.userBmi,
-        userRecommnededCal: friend.recommendedCal,
-        weeklyExerciseTime: friendWeeklyInfo.totalExerciseTime,
-        userWeightChange: friendMonthlyInfo.weightChangeRate,
+        userRecommendedCal: friend.recommendedCal,
+        weeklyExerciseTime: friendWeeklyExerciseTime,
+        weightChangeRate: friendChanges.weightChange,
+        bodyFatChangeRate: friendChanges.bodyFatChange,
+        bmiChangeRate: friendChanges.bmiChange,
+        muscleMassChangeRate: friendChanges.muscleMassChange,
       }
     });
   } catch (error) {
