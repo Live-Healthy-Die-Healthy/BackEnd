@@ -40,9 +40,15 @@ router.get('/analysisStatus/:analysisId', async (req, res) => {
 
     if (analysis.status === 'completed') {
       console.log("analysis.dietDetailLogIds(com) : ", analysis.dietDetailLogIds);
+      const resultJson = analysis.result_json;
+      if (resultJson && resultJson.음식상세) {
+        const foodNames = resultJson.음식상세.map(food => food.음식명);
+        const exampleImages = await getExampleImages(foodNames);
+        resultJson.예시이미지 = exampleImages;
+      }
       res.json({
         status: 'completed',
-        dietInfo: analysis.result_json,
+        dietInfo: resultJson,
         dietDetailLogIds: analysis.dietDetailLogIds
       });
     } else if (analysis.status === 'failed') {
@@ -58,9 +64,6 @@ router.get('/analysisStatus/:analysisId', async (req, res) => {
     res.status(500).json({ message: 'Error checking analysis status', error: error.message });
   }
 }); 
-
-
-
 
 async function performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate) {
   const maxRetries = 3;
@@ -149,8 +152,6 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
   }
 }
 
-
-
 router.put('/updateDietDetail/:analysisId', async (req, res) => {
   const { analysisId } = req.params;
   const { updatedDetails } = req.body;
@@ -207,14 +208,6 @@ router.put('/updateDietDetail/:analysisId', async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
 const basePrompt = `
 당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 다음 JSON 형식에 따라 분석 결과를 출력하세요:
 
@@ -256,7 +249,6 @@ const basePrompt = `
 사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
 각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
 `;
-
 
 function sanitizeJsonString(jsonString) {
     jsonString = jsonString.trim();
@@ -339,6 +331,17 @@ function mergeAndParseResponses(responses) {
     }
 }
 
+// 이미지 파일 경로를 설정하는 함수
+async function getExampleImages(foodNames) {
+  const exampleImages = {};
+  for (const foodName of foodNames) {
+      const menuItem = await MenuList.findOne({ where: { menuName: foodName } });
+      if (menuItem && menuItem.menuImage) {
+          exampleImages[foodName] = `data:image/jpeg;base64,${menuItem.menuImage.toString('base64')}`;
+      }
+  }
+  return exampleImages;
+}
 
 async function getGPTResponse(message, imageBase64) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -351,8 +354,9 @@ async function getGPTResponse(message, imageBase64) {
   let messages = [
     { role: "system", content: basePrompt },
     { role: "user", content: message }
-];
-if (imageBase64) {
+  ];
+
+  if (imageBase64) {
     messages.push({
         role: "user",
         content: [
@@ -360,7 +364,7 @@ if (imageBase64) {
             { type: "image_url", image_url: { url: imageBase64 } }
         ]
     });
-}
+  }
 
   const payload = {
       model: imageBase64 ? "gpt-4o" : "gpt-4",
@@ -414,6 +418,14 @@ if (imageBase64) {
 
       const parsedContent = mergeAndParseResponses(allResponses);
       enhancedLogging('Parsed GPT Response:', parsedContent);
+
+      // 음식명과 매칭되는 예시 이미지를 찾기
+      if (parsedContent && parsedContent.음식상세) {
+        const foodNames = parsedContent.음식상세.map(food => food.음식명);
+        const exampleImages = await getExampleImages(foodNames);
+        parsedContent.예시이미지 = exampleImages;
+    }
+
       return parsedContent;
   } catch (error) {
     enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
@@ -437,8 +449,7 @@ if (imageBase64) {
     }
 
     return getFallbackResponse(error, allResponses.join(''));
+  }
 }
-}
-
 
 module.exports = router;
