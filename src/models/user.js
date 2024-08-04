@@ -64,11 +64,23 @@ module.exports = class User extends Sequelize.Model {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      userCarbo:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
+      userProtein:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
+      userFat:{
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+      },
       recommendedCal: {
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0,
-      }
+      },
     }, {
       sequelize,
       timestamps: true,

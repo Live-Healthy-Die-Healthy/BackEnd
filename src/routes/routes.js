@@ -75,6 +75,27 @@ router.post('/checkUser', async (req, res) => {
     return age;
   }
 
+  function calculateMacroDistribution(calories, carbRatio, proteinRatio, fatRatio) {
+    const totalRatio = carbRatio + proteinRatio + fatRatio;
+    
+    const carbCalories = (calories * carbRatio) / totalRatio;
+    const proteinCalories = (calories * proteinRatio) / totalRatio;
+    const fatCalories = (calories * fatRatio) / totalRatio;
+  
+    const carbGrams = (carbCalories / 4).toFixed(2);
+    const proteinGrams = (proteinCalories / 4).toFixed(2);
+    const fatGrams = (fatCalories / 9).toFixed(2);
+  
+    return {
+      carbCalories: carbCalories.toFixed(2),
+      proteinCalories: proteinCalories.toFixed(2),
+      fatCalories: fatCalories.toFixed(2),
+      carbGrams: parseFloat(carbGrams),
+      proteinGrams: parseFloat(proteinGrams),
+      fatGrams: parseFloat(fatGrams)
+    };
+  }
+
   // 사용자 프로필 등록
   router.post('/newProfile', async (req, res) => {
     console.log('Received request on /newProfile');
@@ -119,8 +140,12 @@ router.post('/checkUser', async (req, res) => {
     const recommendedCal = calculateTDEE(userBMR, activityLevel);
     console.log(`권장 섭취 칼로리: ${recommendedCal.toFixed(2)} kcal/day`);
 
-
-
+     // 권장 칼로리에 따른 탄단지 비율 계산 및 g 환산
+     const carbRatio = 5;
+     const proteinRatio = 3;
+     const fatRatio = 2;
+     const macroDistribution = calculateMacroDistribution(recommendedCal, carbRatio, proteinRatio, fatRatio);
+  
     try {
       // 새로운 사용자 프로필 등록
       const newUser = await User.create({
@@ -137,7 +162,10 @@ router.post('/checkUser', async (req, res) => {
         userBmr: userBMR,
         userImage : imageBuffer,
         connectedAt,
-        recommendedCal
+        recommendedCal,
+        userCarbo: macroDistribution.carbGrams,
+        userProtein: macroDistribution.proteinGrams,
+        userFat: macroDistribution.fatGrams
       });
 
        // 초기 데이터 userChanged에 저장
@@ -152,12 +180,28 @@ router.post('/checkUser', async (req, res) => {
       updatedAt: new Date()
     });
 
-      res.status(200).json(newUser);
-    } catch (error) {
-      console.error('프로필 등록 오류:', error);
-      res.status(500).json({ message: '프로필 등록 실패' });
-    }
-  });
+    res.status(200).json({ 
+      message: '프로필 등록 성공',
+      userId: newUser.userId,
+      userEmail: newUser.userEmail,
+      username: newUser.username,
+      userBirth: newUser.userBirth,
+      userHeight: newUser.userHeight,
+      userWeight: newUser.userWeight,
+      userGender: newUser.userGender,
+      userMuscleMass: newUser.userMuscleMass,
+      userBmi: newUser.userBmi,
+      userBodyFatPercentage: newUser.userBodyFatPercentage,
+      userBmr: newUser.userBmr,
+      userImage: newUser.userImage,
+      connectedAt: newUser.connectedAt,
+      recommendedCal: newUser.recommendedCal
+    });
+  } catch (error) {
+    console.error('프로필 등록 오류:', error);
+    res.status(500).json({ message: '프로필 등록 실패' });
+  }
+});
 
 //승준
 router.post('/exerciseLog', async (req, res) => {
@@ -442,6 +486,12 @@ router.put('/profile', async (req, res) => {
     const roundedBMR = parseFloat(userBMR.toFixed(1));
     const roundedRecommendedCal = parseFloat(recommendedCal.toFixed(1));
 
+     // 권장 칼로리에 따른 탄단지 비율 계산 및 g 환산
+     const carbRatio = 5;
+     const proteinRatio = 3;
+     const fatRatio = 2;
+     const macroDistribution = calculateMacroDistribution(recommendedCal, carbRatio, proteinRatio, fatRatio);
+
     // 기존 프로필 데이터를 UserChanged에 저장
     await UserChanged.create({
       userId: user.userId,
@@ -465,11 +515,29 @@ router.put('/profile', async (req, res) => {
     user.userBmr = roundedBMR;
     user.userImage = imageBuffer;
     user.recommendedCal = roundedRecommendedCal;
+    user.userCarbo = macroDistribution.carbGrams;
+    user.userProtein = macroDistribution.proteinGrams;
+    user.userFat = macroDistribution.fatGrams;
 
     await user.save();
 
-    // 응답에 userChangedId 추가
-    res.status(200).json({ ...user.toJSON()});
+    res.status(200).json({ 
+      message: '프로필 수정 성공',
+      userId: user.userId,
+      userEmail: user.userEmail,
+      username: user.username,
+      userBirth: user.userBirth,
+      userHeight: user.userHeight,
+      userWeight: user.userWeight,
+      userGender: user.userGender,
+      userMuscleMass: user.userMuscleMass,
+      userBmi: user.userBmi,
+      userBodyFatPercentage: user.userBodyFatPercentage,
+      userBmr: user.userBmr,
+      userImage: user.userImage,
+      connectedAt: user.connectedAt,
+      recommendedCal: user.recommendedCal
+    });
   } catch (error) {
     console.error('Error updating user profile:', error);
     res.status(500).json({ message: 'Failed to update user profile' });

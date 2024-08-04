@@ -642,6 +642,9 @@ router.post('/newDaily', async (req, res) => {
       userBmr: user.userBmr,
       userRecommendedCal: user.recommendedCal,
       userImage: user.userImage,
+      userCarbo: user.userCarbo,
+      userProtein: user.userProtein,
+      userFat: user.userFat,
     };
     
     if (!user) {
@@ -671,6 +674,9 @@ router.post('/newDaily', async (req, res) => {
       aeroInfo: dailyAerobics,
       anAeroInfo: dailyAnaerobics,
       userImage: user.userImage ? user.userImage.toString('base64') : null,
+      recommendedCarbGrams: userData.userCarbo,
+      recommendedProteinGrams: userData.userProtein,
+      recommendedFatGrams: userData.userFat
   });
   } catch (error) {
     console.error(error);
@@ -902,6 +908,9 @@ router.post('/newWeekly', async (req, res) => {
       userBodyFatPercentage: user.userBodyFatPercentage,
       userBmr: user.userBmr,
       userImage: user.userImage,
+      userCarbo: user.userCarbo,
+      userProtein: user.userProtein,
+      userFat: user.userFat
     };
 
     console.log("Daily Reports: ", dailyReports);
@@ -931,6 +940,9 @@ router.post('/newWeekly', async (req, res) => {
       anaerobicRatio: anaerobicRatio,
       aerobicRatio: aerobicRatio,
       userImage: user.userImage ? user.userImage.toString('base64') : null,
+      recommendedCarbGrams: (userData.userCarbo * 7).toFixed(2),
+      recommendedProteinGrams: (userData.userProtein * 7).toFixed(2),
+      recommendedFatGrams: (userData.userFat * 7).toFixed(2)
     });
   } catch (error) {
     console.error('Error retrieving weekly report:', error);
@@ -1069,8 +1081,16 @@ router.post('/newMonthly', async (req, res) => {
       userBodyFatPercentage: user.userBodyFatPercentage,
       userBmr: user.userBmr,
       userImage: user.userImage,
+      userCarbo: user.userCarbo,
+      userProtein: user.userProtein,
+      userFat: user.userFat
     };
 
+    // 월간 권장 탄단지 계산
+    const daysInMonth = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0).getDate();
+    const recommendedCarbGrams = (userData.userCarbo * daysInMonth).toFixed(2);
+    const recommendedProteinGrams = (userData.userProtein * daysInMonth).toFixed(2);
+    const recommendedFatGrams = (userData.userFat * daysInMonth).toFixed(2);
     const previousMonthData = await getPreviousMonthData(userId, date);
     const changes = calculateChanges(previousMonthData, userData);
 
@@ -1089,6 +1109,9 @@ router.post('/newMonthly', async (req, res) => {
       muscleMassChangeRate: parseFloat(changes.muscleMassChange.toFixed(1)),
       totalExerciseTime: parseFloat(totalExerciseTime.toFixed(1)),
       userImage: user.userImage ? user.userImage.toString('base64') : null,
+      recommendedCarbGrams: recommendedCarbGrams,
+      recommendedProteinGrams: recommendedProteinGrams,
+      recommendedFatGrams: recommendedFatGrams
     });
   } catch (error) {
     console.error('Error retrieving monthly report:', error);
