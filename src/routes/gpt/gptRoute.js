@@ -285,6 +285,7 @@ Ensure that:
 2. All JSON objects and arrays are correctly closed.
 3. Avoid duplicate keys within the same JSON object.
 4. Check for and remove any bad control characters in JSON strings.
+5. Let the total ratio of carbohydrate, protein, and fat be 100.
 
 Analyze the uploaded meal image to provide comprehensive and structured dietary information in the following JSON format:
 
