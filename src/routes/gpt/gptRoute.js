@@ -12,6 +12,32 @@ router.post('/dietImage' , async (req, res) => {
   const { userId, dietType, dietDate, dietImage } = req.body;
   console.log("dietDate: ", dietDate);
 
+  const user = await User.findOne({
+    where: { userId: userId }
+  });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+  
+  const userData = {
+    userGender: user.userGender,
+    userBirth: user.userBirth,
+    userWeight: user.userWeight,
+    userMuscleMass: user.userMuscleMass,
+    userBmi: user.userBmi,
+    userBodyFatPercentage: user.userBodyFatPercentage,
+    userBmr: user.userBmr,
+    userRecommendedCal: user.recommendedCal,
+    userCarbo: user.userCarbo,
+    userProtein: user.userProtein,
+    userFat: user.userFat,
+  };
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
   try {
     // 분석 ID 생성
     const analysisId = uuidv4();
@@ -20,7 +46,7 @@ router.post('/dietImage' , async (req, res) => {
     res.json({ analysisId });
 
     // 비동기적으로 이미지 분석 시작
-    performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate);
+    performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate, userData);
 
   } catch (error) {
     console.error('Error processing diet image:', error);
@@ -65,92 +91,127 @@ router.get('/analysisStatus/:analysisId', async (req, res) => {
   }
 }); 
 
-async function performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate) {
+async function performImageAnalysis(analysisId, dietImage, userId, dietType, dietDate, userData) {
   const maxRetries = 3;
-  let retryCount = 0;
 
-  while (retryCount < maxRetries) {
-    console.log("retryCount: ", retryCount);
+  // 각 파트별로 성공 여부를 저장하는 변수 추가
+  let part1Success = false;
+  let part2Success = false;
+  let part3Success = false;
+
+  let part1Result, part2Result, part3Result;
+
+  for (let retryCount = 0; retryCount < maxRetries; retryCount++) {
     try {
-      const analysisResult = await getGPTResponse("Analyze this meal image", dietImage);
-
-      // 응답 형식 검증
-      if (typeof analysisResult !== 'object' || !Array.isArray(analysisResult.음식상세)) {
-        console.log("Invalid response format. Retrying...");
-        retryCount++;
-        continue;
+      if (!part1Success) {
+        // Part 1 응답 확인
+        part1Result = await getGPTResponse(part1Prompt, dietImage, userData, "총칼로리", "영양소비율");
+        console.log("Part 1 Result:", part1Result); // Part 1 응답 확인
+        part1Success = true; // 파싱 성공 시 플래그 업데이트
       }
 
-      // 예상양이 0인 음식이 있는지 확인
-      const hasZeroQuantity = analysisResult.음식상세.some(food => food.예상양 === 0);
+      if (!part2Success) {
+        // Part 2 응답 확인
+        part2Result = await getGPTResponse(part2Prompt, dietImage, userData, "음식상세");
+        console.log("Part 2 Result:", part2Result); // Part 2 응답 확인
+        
+        // JSON 파싱 확인
+        if (Array.isArray(part2Result.음식상세)) {
+          part2Success = true; // 파싱 성공 시 플래그 업데이트
+        } else {
+          console.error("Invalid format for 음식상세. Expected an array.");
+          throw new Error("Invalid format for 음식상세.");
+        }
+      }
 
-      if (hasZeroQuantity) {
+      if (!part3Success) {
+        // Part 3 응답 확인
+        part3Result = await getGPTResponse(part3Prompt, dietImage, userData, "영양분석", "권장사항", "주의사항");
+        console.log("Part 3 Result:", part3Result); // Part 3 응답 확인
+        part3Success = true; // 파싱 성공 시 플래그 업데이트
+      }
+
+      // 모든 파트가 성공적으로 파싱되었는지 확인
+      if (part1Success && part2Success && part3Success) {
+        // 세 개의 결과를 하나의 JSON으로 병합
+        const analysisResult = {
+          ...part1Result,
+          ...part2Result,
+          ...part3Result,
+        };
+        console.log("analysisResult: ", analysisResult); // 병합된 결과 확인
+
+        // 예상양이 0인 음식이 있는지 확인
+        const hasZeroQuantity = analysisResult.음식상세.some(food => food.예상양 === 0);
+
+        if (hasZeroQuantity) {
+          await Analysis.create({
+            analysisId,
+            userId,
+            dietImage,
+            result_json: null,
+            status: 'failed'
+          });
+          return { status: 'failed', message: '음식의 양을 정확히 파악할 수 없습니다. 사진을 다시 찍어주세요.' };
+        }
+
+        // DietLog 생성
+        const newDietLog = await DietLog.create({
+          userId,
+          dietDate,
+          dietType,
+          dietImage
+        });
+
+        // DietLogDetail 생성 및 dietDetailLogId 수집
+        const dietDetailLogIds = [];
+        for (const food of analysisResult.음식상세) {
+          let menuItem = await MenuList.findOne({ where: { menuName: food.음식명 } });
+
+          if (!menuItem) {
+            menuItem = await MenuList.create({
+              menuName: food.음식명,
+              menuCalorie: food.영양정보.칼로리 / 100,
+              menuImage: Buffer.from([]),
+              menuCarbo: food.영양정보.탄수화물 / 100,
+              menuProtein: food.영양정보.단백질 / 100,
+              menuFat: food.영양정보.지방 / 100,
+              menuGI: food.영양정보.GI지수,
+            });
+          }
+
+          const dietLogDetail = await DietLogDetail.create({
+            dietLogId: newDietLog.dietLogId,
+            menuId: menuItem.menuId,
+            quantity: food.예상양
+          });
+          console.log("dietLogDetail.dietDetailLogId : ", dietLogDetail.dietDetailLogId);
+
+          dietDetailLogIds.push(dietLogDetail.dietDetailLogId);
+        }
+        console.log("dietDetailLogIds : ", dietDetailLogIds);
+
         await Analysis.create({
           analysisId,
           userId,
           dietImage,
-          result_json: null,
-          status: 'failed'
+          result_json: analysisResult,
+          status: 'completed',
+          dietDetailLogIds
         });
-        return { status: 'failed', message: '음식의 양을 정확히 파악할 수 없습니다. 사진을 다시 찍어주세요.' };
+
+        return { status: 'completed', dietInfo: analysisResult };
       }
-
-      // DietLog 생성
-      const newDietLog = await DietLog.create({
-        userId,
-        dietDate,
-        dietType,
-        dietImage
-      });
-
-      // DietLogDetail 생성 및 dietDetailLogId 수집
-      const dietDetailLogIds = [];
-      for (const food of analysisResult.음식상세) {
-        let menuItem = await MenuList.findOne({ where: { menuName: food.음식명 } });
-
-        if (!menuItem) {
-          menuItem = await MenuList.create({
-            menuName: food.음식명,
-            menuCalorie: food.영양정보.칼로리 / 100,
-            menuImage: Buffer.from([]),
-            menuCarbo: food.영양정보.탄수화물 / 100,
-            menuProtein: food.영양정보.단백질 / 100,
-            menuFat: food.영양정보.지방 / 100,
-            menuGI: food.영양정보.GI지수 ,
-          });
-        }
-
-        const dietLogDetail = await DietLogDetail.create({
-          dietLogId: newDietLog.dietLogId,
-          menuId: menuItem.menuId,
-          quantity: food.예상양
-        });
-        console.log("dietLogDetail.dietDetailLogId : ", dietLogDetail.dietDetailLogId);
-
-        dietDetailLogIds.push(dietLogDetail.dietDetailLogId);
-      }
-      console.log("dietDetailLogIds : ", dietDetailLogIds);
-
-      await Analysis.create({
-        analysisId,
-        userId,
-        dietImage,
-        result_json: analysisResult,
-        status: 'completed',
-        dietDetailLogIds
-      });
-
-      return { status: 'completed', dietInfo: analysisResult };
-
     } catch (error) {
       console.error('Error during image analysis:', error);
-      retryCount++;
-      if (retryCount >= maxRetries) {
+      if (retryCount >= maxRetries - 1) {
         throw new Error('Maximum retry attempts reached');
       }
+      console.log(`Retrying... (${retryCount + 1}/${maxRetries})`);
     }
   }
 }
+
 
 router.put('/updateDietDetail/:analysisId', async (req, res) => {
   const { analysisId } = req.params;
@@ -204,12 +265,16 @@ router.put('/updateDietDetail/:analysisId', async (req, res) => {
 });
 
 
+const part1Prompt = `
+You are an AI nutritionist with expertise in nutrition and food science.
 
+Ensure that:
+1. The fields "영양소비율" are properly formatted as JSON objects, not strings.
+2. All JSON objects and arrays are correctly closed.
+3. Avoid duplicate keys within the same JSON object.
+4. Check for and remove any bad control characters in JSON strings.
 
-
-
-const basePrompt = `
-당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 다음 JSON 형식에 따라 분석 결과를 출력하세요:
+Analyze the uploaded meal image to provide comprehensive and structured dietary information in the following JSON format:
 
 {
     "총칼로리": 0,
@@ -217,7 +282,27 @@ const basePrompt = `
         "탄수화물": 0,
         "단백질": 0,
         "지방": 0
-    },
+    }
+}
+
+All analysis of food information, detailed data, and nutritional analysis is based solely on the food image.
+Write the recommendations and precautions based on the food image, its data, and the user information provided as reportData.
+`;
+
+const part2Prompt = `
+You are an AI nutritionist with expertise in nutrition and food science.
+
+Ensure the following:
+1. The field "음식상세" is properly formatted as a JSON array, not a string.
+2. All JSON objects and arrays are correctly closed.
+3. Avoid duplicate keys within the same JSON object.
+4. Check for and remove any bad control characters in JSON strings.
+5. Even if the number of food items increases, maintain the existing JSON format.
+6. "음식명" should be written in Korean.
+
+Analyze the uploaded meal image to provide comprehensive and structured dietary information in the following JSON format:
+
+{
     "음식상세": [
         {
             "음식명": "",
@@ -229,26 +314,37 @@ const basePrompt = `
                 "단백질": 0,
                 "지방": 0,
                 "GI지수": 0
-            },
-            "주요영양소": ""
+            }
         }
-    ],
+    ]
+}
+
+Each food detail should consist of a single food item, such as "spicy chicken with vegetables" or "lobster and seafood." Do not group multiple food items into one food detail. Write recommendations and precautions based on the food image, its data, and the user information provided as reportData.
+`;
+
+const part3Prompt = `
+You are an AI nutritionist with expertise in nutrition and food science.
+
+Ensure that:
+1. All JSON objects and arrays are correctly closed.
+2. Avoid duplicate keys within the same JSON object.
+3. Check for and remove any bad control characters in JSON strings.
+
+Analyze the uploaded meal image to provide comprehensive and structured dietary information in the following JSON format:
+
+{
     "영양분석": {
         "장점": [],
         "개선점": []
     },
     "권장사항": [],
-    "식사시간": {
-        "적합한시간": "",
-        "조언": ""
-    },
     "주의사항": ""
 }
 
-모든 분석은 업로드된 이미지만을 기반으로 하며, 정확한 개인별 권장량을 위해서는 사용자의 성별, 나이, 체중, 활동 수준 등의 추가 정보가 필요함을 명시하세요.
-사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
-각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
+All analysis of food information, detailed data, and nutritional analysis is based solely on the food image. Write recommendations and precautions considering the user's basal metabolic rate, recommended calories, and recommended intake of carbohydrates, proteins, and fats.
 `;
+
+
 
 function sanitizeJsonString(jsonString) {
     jsonString = jsonString.trim();
@@ -343,7 +439,7 @@ async function getExampleImages(foodNames) {
   return exampleImages;
 }
 
-async function getGPTResponse(message, imageBase64) {
+async function getGPTResponse(prompt, imageBase64, userData, ...jsonKeys) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
       throw new Error('OPENAI_API_KEY is not set');
@@ -351,9 +447,25 @@ async function getGPTResponse(message, imageBase64) {
 
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
+  const reportData = 
+{
+    // User data
+    "사용자 성별": userData.userGender,
+    "사용자 생년월일": userData.userBirth,
+    "사용자 체중": userData.userWeight,
+    "사용자 골격근량": userData.userMuscleMass,
+    "사용자 BMI": userData.userBmi,
+    "사용자 체지방률": userData.userBodyFatPercentage,
+    "사용자 기초대사량": userData.userBmr,
+    "사용자 권장 칼로리": userData.userRecommendedCal,
+    "사용자 권장 탄수화물": userData.userCarbo,
+    "사용자 권장 단백질": userData.userProtein,
+    "사용자 권장 지방": userData.userFat,
+};
+
   let messages = [
-    { role: "system", content: basePrompt },
-    { role: "user", content: message }
+    { role: "system", content: prompt },
+    { role: "user", content: JSON.stringify(reportData) }
   ];
 
   if (imageBase64) {
@@ -367,7 +479,7 @@ async function getGPTResponse(message, imageBase64) {
   }
 
   const payload = {
-      model: imageBase64 ? "gpt-4o" : "gpt-4",
+      model: "gpt-4o",
       messages: messages,
       max_tokens: 1000,
       response_format: { type: "json_object" }
@@ -419,14 +531,15 @@ async function getGPTResponse(message, imageBase64) {
       const parsedContent = mergeAndParseResponses(allResponses);
       enhancedLogging('Parsed GPT Response:', parsedContent);
 
-      // 음식명과 매칭되는 예시 이미지를 찾기
-      if (parsedContent && parsedContent.음식상세) {
-        const foodNames = parsedContent.음식상세.map(food => food.음식명);
-        const exampleImages = await getExampleImages(foodNames);
-        parsedContent.예시이미지 = exampleImages;
-    }
+      // 특정 JSON 키들만 반환
+      const filteredContent = jsonKeys.reduce((result, key) => {
+          if (parsedContent[key]) {
+              result[key] = parsedContent[key];
+          }
+          return result;
+      }, {});
 
-      return parsedContent;
+      return filteredContent;
   } catch (error) {
     enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
 
