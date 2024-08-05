@@ -120,10 +120,19 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
           part2Success = true; // 파싱 성공 시 플래그 업데이트
         } else {
           console.error("Invalid format for 음식상세. Expected an array.");
-          throw new Error("Invalid format for 음식상세.");
+
+          // 수정된 부분: 오류 발생 시 fixPrompt를 사용하여 재요청
+          part2Result = await getGPTResponse(fixPrompt, dietImage, userData, "음식상세");
+          console.log("Fixed Part 2 Result:", part2Result); // 수정된 Part 2 응답 확인
+          
+          // 다시 JSON 파싱 확인
+          if (Array.isArray(part2Result.음식상세)) {
+            part2Success = true; // 파싱 성공 시 플래그 업데이트
+          } else {
+            throw new Error("Invalid format for 음식상세 after fix attempt.");
+          }
         }
       }
-
       if (!part3Success) {
         // Part 3 응답 확인
         part3Result = await getGPTResponse(part3Prompt, dietImage, userData, "영양분석", "권장사항", "주의사항");
@@ -204,8 +213,11 @@ async function performImageAnalysis(analysisId, dietImage, userId, dietType, die
       }
     } catch (error) {
       console.error('Error during image analysis:', error);
+
+      // 수정된 부분: 재시도 횟수 도달 시 오류를 던지지 않고 로그만 남김
       if (retryCount >= maxRetries - 1) {
-        throw new Error('Maximum retry attempts reached');
+        console.error('Maximum retry attempts reached');
+        return { status: 'error', message: 'Maximum retry attempts reached' };
       }
       console.log(`Retrying... (${retryCount + 1}/${maxRetries})`);
     }
@@ -320,6 +332,37 @@ Analyze the uploaded meal image to provide comprehensive and structured dietary 
 }
 
 Each food detail should consist of a single food item, such as "spicy chicken with vegetables" or "lobster and seafood." Do not group multiple food items into one food detail. Write recommendations and precautions based on the food image, its data, and the user information provided as reportData.
+`;
+
+const fixPrompt = `
+Do not change the JSON structure! Strictly follow the JSON format given below.
+Do not add any content other than the structure below.
+
+{
+    "음식상세": [
+        {
+            "음식명": "",
+            "예상양": 0,
+            "칼로리": 0,
+            "영양정보": {
+                "칼로리": 0,
+                "탄수화물": 0,
+                "단백질": 0,
+                "지방": 0,
+                "GI지수": 0
+            }
+        }
+    ]
+}
+
+
+Ensure the following:
+1. The field "음식상세" is properly formatted as a JSON array, not a string.
+2. All JSON objects and arrays are correctly closed.
+3. Avoid duplicate keys within the same JSON object.
+4. Check for and remove any bad control characters in JSON strings.
+5. Even if the number of food items increases, maintain the existing JSON format.
+6. "음식명" should be written in Korean.
 `;
 
 const part3Prompt = `
