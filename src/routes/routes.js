@@ -787,6 +787,12 @@ router.post('/dietDetail/:dietType', async (req, res) => {
     console.log("startDate:", startDate);
     console.log("endDate:", endDate);
 
+    // 유저 정보 가져오기
+    const user = await User.findOne({ where: { userId: userId } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     // 해당 날짜와 식단 유형에 해당하는 DietLog 찾기
     const dietLogs = await DietLog.findAll({
       where: {
@@ -824,7 +830,11 @@ router.post('/dietDetail/:dietType', async (req, res) => {
     );
 
     console.log("response:", response);
-    res.json(response);
+
+    res.json({
+      recommendedCal: user.recommendedCal,
+      dietDetails: response
+    });
   } catch (error) {
     console.error('Error retrieving diet details:', error);
     res.status(500).json({ message: 'Error retrieving diet details', error: error.message });
