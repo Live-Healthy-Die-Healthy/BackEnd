@@ -41,15 +41,18 @@ router.get('/analysisStatus/:analysisId', async (req, res) => {
     if (analysis.status === 'completed') {
       console.log("analysis.dietDetailLogIds(com) : ", analysis.dietDetailLogIds);
       const resultJson = analysis.result_json;
+      let exampleImages = [];
+
       if (resultJson && resultJson.음식상세) {
         const foodNames = resultJson.음식상세.map(food => food.음식명);
-        const exampleImages = await getExampleImages(foodNames);
-        resultJson.예시이미지 = exampleImages;
+        exampleImages = await getExampleImages(foodNames);
       }
+      console.log("exampleImages: ", exampleImages);
       res.json({
         status: 'completed',
         dietInfo: resultJson,
-        dietDetailLogIds: analysis.dietDetailLogIds
+        dietDetailLogIds: analysis.dietDetailLogIds,
+        exampleImages
       });
     } else if (analysis.status === 'failed') {
       res.json({
@@ -209,7 +212,7 @@ router.put('/updateDietDetail/:analysisId', async (req, res) => {
 
 
 const basePrompt = `
-당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 다음 JSON 형식에 따라 분석 결과를 출력하세요:
+당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 반드시 다음 JSON 형식에 따라 분석 결과를 출력하세요. 다른 텍스트는 포함하지 말고 오직 JSON 형식의 응답만 제공하세요:
 
 {
     "총칼로리": 0,
