@@ -67,7 +67,89 @@
 
 
 
+## 시작 가이드
+### Requirements
+For building and running the application you need:
+- [Node.js v20.11.1](https://nodejs.org/en/blog/release/v20.11.1)
 
+#### Installation
+ bash
+$ git clone https://github.com/Live-Healthy-Die-Healthy/BackEnd.git
+#### Backend
+
+$ npm install
+$ npm run main
+#### Frontend
+
+$ npm install
+$ npm start
+
+<div align=left><h1>📚 STACKS</h1></div>
+
+Dev tools
+<div align=left> 
+  <img src="https://img.shields.io/badge/visual studio code-339AF0?style=for-the-badge&logo=visual studio code&logoColor=white">
+  <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
+  <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
+  <br>
+</div>
+
+Config
+<div align=left>
+  <img src="https://img.shields.io/badge/NPM-%23CB3837.svg?style=for-the-badge&logo=npm&logoColor=white">
+</div>
+
+Development
+<div align=left>
+  <img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"> 
+  <img src="https://img.shields.io/badge/react-61DAFB?style=for-the-badge&logo=react&logoColor=black"> 
+  <img src="https://img.shields.io/badge/threejs-black?style=for-the-badge&logo=three.js&logoColor=white">
+  <img src="https://img.shields.io/badge/node.js-339933?style=for-the-badge&logo=Node.js&logoColor=white">
+  <img src="https://img.shields.io/badge/express-000000?style=for-the-badge&logo=express&logoColor=white">
+  <img src="https://img.shields.io/badge/mariaDB-003545?style=for-the-badge&logo=mariaDB&logoColor=white"> 
+</div>
+
+## 아키텍쳐
+
+### 디렉토리 구조
+```
+└── backend
+    ├── .env
+    ├── .gitignore
+    ├── exerciseData.js
+    ├── main.js
+    ├── menuData.js
+    ├── config.json
+    ├── images
+    ├── node_modules
+    ├── src
+    │   ├── controllers
+    │   │   └── loginController.js
+    │   ├── models
+    │   │   ├── AerobicExercise.js
+    │   │   ├── AnaerobicExercise.js
+    │   │   ├── Analysis.js
+    │   │   ├── cheatDay.js
+    │   │   ├── dailyReport.js
+    │   │   ├── dietLog.js
+    │   │   ├── dietLogDetail.js
+    │   │   ├── exerciseList.js
+    │   │   ├── exerciseLog.js
+    │   │   ├── exerciseScrap.js
+    │   │   ├── friend.js
+    │   │   ├── menuList.js
+    │   │   ├── monthlyReport.js
+    │   │   ├── user.js
+    │   │   ├── userChanged.js
+    │   │   └── weeklyReport.js
+    │   ├── prompts
+    │   │   └── dailyBasePrompt.txt
+    │   └── routes
+    │       ├── gpt
+    │       ├── exerciseRoute.js
+    │       ├── report.js
+    │       └── index.js
+```
 
 
 
